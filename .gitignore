@@ -1,0 +1,23 @@
+# Python-specifika filer
+__pycache__/
+*.pyc
+*.pyo
+
+# Mappar för tillfällig data & utdata
+MovementReports/
+SensorData/
+report.pdf
+
+# Mapp för känsliga filer 
+Secrets/
+
+# Editor- och OS-specifika filer
+.DS_Store
+.vscode/
+
+# Python-beroenden
+venv/
+env/
+
+# Inlämningsbeskrivning
+Proj 1.pdf
