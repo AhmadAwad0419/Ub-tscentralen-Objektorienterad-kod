@@ -7,7 +7,8 @@ class SensorManager:
         with open(file_path, 'r') as file:
             for line in file:
                 yield line.strip()
-#         This method uses a generator to read large sensor logs line by line.      
+#         This method uses a generator to read large sensor logs line by line.    
+#   
     def analyze_data(self, file_path):
         """Analyze sensor data to count errors and patterns."""
         error_count = 0
@@ -34,6 +35,7 @@ class SensorManager:
             file.write("Pattern Counts:\n")
             for pattern, count in pattern_count.items():
                 file.write(f"{pattern}: {count}\n")
+
     def process_sensor_file(self, input_path, output_path):
         """Process a sensor data file and save the analysis."""
         analysis = self.analyze_data(input_path)
