@@ -1,4 +1,5 @@
 from data.file_reader import FileReader
+from .collision_checker import CollisionChecker
 
 class MovementManager:
     def __init__(self):
@@ -50,6 +51,13 @@ class MovementManager:
             for sub_id in finished_subs:        
                 del self.active_generators[sub_id]
                     
-        #Check for collisions
-
-        #Log collisions
+        #Check for collisions after this batch of movements
+        new_collisions = CollisionChecker().check_for_collisions(self.submarines)
+        if new_collisions:
+                for sub1, sub2, position in new_collisions:
+                    self.collision_checker.log_collision(sub1, sub2, position)
+                    for sid in (getattr(sub1, "id", None), getattr(sub2, "id", None)):
+                        if sid in self.active_generators:
+                            del self.active_generators[sid]
+        else:
+            print("No collisions detected in this round.")
