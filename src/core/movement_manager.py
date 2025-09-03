@@ -1,4 +1,4 @@
-from data.file_reader import load_movements
+from data.file_reader import FileReader
 
 class MovementManager:
     def __init__(self):
@@ -6,8 +6,50 @@ class MovementManager:
         self.active_generators = {}
 
     def load_submarines(self, submarines_list):
+        file_reader = FileReader()
         for sub in submarines_list:
             self.submarines.append(sub)
-            self.active_generators[sub.id] = load_movements(sub.id)
+            self.active_generators[sub.id] = file_reader.load_movements(sub.id)
 
+    def move_from_position_and_distance(self, submarine, direction: str, distance: int) -> None:
+        """Update position based on direction and distance."""
     
+        if direction not in {"up", "down", "forward"}:
+            raise ValueError(f"Invalid direction: {direction}")
+        if distance < 0:
+            raise ValueError("Distance must be non-negative")
+        
+        # Update position
+        if direction == "up":
+            submarine.vertical_position -= distance
+        elif direction == "down":
+            submarine.vertical_position += distance
+        elif direction == "forward":
+            submarine.horizontal_position += distance    
+        
+        # Log the move
+        submarine.movements.append((direction, distance))
+
+    def start_central(self):
+        while self.active_generators:
+            finished_subs = []
+            for sub_id, generator in self.active_generators.items():
+                try:
+                    movement = next(generator)
+                    if movement is not None:
+                        command, value = movement
+                        sub = next((s for s in self.submarines if s.id == sub_id), None)
+                        if sub is not None:
+                            self.move_from_position_and_distance(sub, command, value)
+                        else:
+                            print(f"Warning: Submarine id {sub_id} is not found. Skipping")
+                except StopIteration:
+                    finished_subs.append(sub_id)
+            
+            # Ta bort ubåtar som är färdiga
+            for sub_id in finished_subs:        
+                del self.active_generators[sub_id]
+                    
+        #Check for collisions
+
+        #Log collisions
