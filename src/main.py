@@ -36,8 +36,9 @@ def main():
         submarine = Submarine(drone_id)
         submarines.append(submarine)
 
-    for sub in submarines:
-        print(sub)
+    movement_manager.load_submarines(submarines)
+    movement_manager.start_central()
+
     #file_reader = FileReader()
     #positions = {drone_id: [0,0] for drone_id in drone_ids}
     #generators = {drone_id: file_reader.load_movements(drone_id) for drone_id in drone_ids}
