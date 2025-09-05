@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -11,6 +11,12 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
         label = QLabel("Välkommen till Ubåtscentralen!")
         layout.addWidget(label)
+
+        map_button = QPushButton("Karta")
+        log_button = QPushButton("Loggar")
+        layout.addWidget(map_button)
+        layout.addWidget(log_button)
+
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
 
