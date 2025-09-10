@@ -1,5 +1,6 @@
 from data.file_reader import FileReader
 from .collision_checker import CollisionChecker
+from .torpedo_system import TorpedoSystem
 
 class MovementManager:
     def __init__(self):
@@ -61,3 +62,10 @@ class MovementManager:
                             del self.active_generators[sid]
         else:
             print("No collisions detected in this round.")
+            
+        
+        # Run friendly-fire checks for torpedoes using final positions.
+        self.torpedo_system = TorpedoSystem()
+        for sub in self.submarines:
+            report = self.torpedo_system.get_friendly_fire_report(self.submarines, sub)
+            self.torpedo_system.log_torpedo_launch(sub, report)
