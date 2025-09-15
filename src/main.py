@@ -27,6 +27,9 @@ def main():
     if not secrets_loader.load_secrets():
         print("Kunde inte ladda hemligheter. Avslutar programmet.")
         sys.exit(1)
+    else:
+        print("Hemligheterna har laddats.")
+
 
     submarines = []
      

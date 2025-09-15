@@ -34,8 +34,8 @@ class NukeActivation:
         print(f"Kombinerad sträng: {combined_string}")
         print(f"Beräknad hash: {calculated_hash}")
         
-        # Måste ändras till rätt datum för test. Datum för denna hash: 2025-09-01
-        expected_hash = "35962cf4c529a44e22fe04f0532086410742979a98e9fd8a8abacc91cef4613f"
+        # Måste ändras till rätt datum för test. Datum för denna hash: 2025-09-04
+        expected_hash = "b5cb564bf402fe33e2bb648164ee6fa175bd94bc6b427eba07c32f4df43c88ab"
         
         if calculated_hash == expected_hash:
             print("Verifiering lyckades: Hashen matchar!")
