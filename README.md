@@ -54,14 +54,6 @@ Ub-tscentralen-Objektorienterad-kod/
 │   │   ├── logger.py
 │   │   └── validators.py
 │   └── main.py
-└── tests/
-    ├── test_file reader.py
-    ├── test_movement_manager.py
-    ├── test_nuke_activation.py
-    ├── test_path.py
-    ├── test_secrets.py
-    ├── test_sensor_manager.py
-    └── test_submarine.py
 ```
 
 ### Directory Breakdown:
@@ -75,7 +67,7 @@ Ub-tscentralen-Objektorienterad-kod/
     *   `logs/`: Stores system log files.
     *   `utils/`: Utility functions and helper modules, such as `logger.py` and `validators.py`.
     *   `main.py`: The entry point of the application.
-*   `tests/`: Contains unit tests for various components of the project.
+
 
 ## Core Components and Functionality
 
@@ -121,10 +113,35 @@ This project requires Python 3.x. The specific dependencies are listed in `files
 1.  **Clone the repository:**
 
     ```bash
-    Ask for it!
+    Ask for it! 
+    It is private repository. 
     ```
 
-2.  **Install dependencies:**
+
+2.  **Create a virtual environment:**
+    🖥 Windows (PowerShell or CMD)
+    ```bash
+    python -m venv venv 
+    ```
+    
+    🍎 macOS / 🐧 Linux
+    ```bash
+    python3 -m venv venv 
+    ```
+    
+
+3.  **Activate the virtual environment:**
+    🖥 Windows (PowerShell)
+    venv\Scripts\Activate.ps1
+
+    If using CMD:
+    venv\Scripts\activate.bat
+
+    🍎 macOS / 🐧 Linux
+    source venv/bin/activate
+
+
+4.  **Install dependencies:**
 
     ```bash
     pip install -r files/requirements.txt 
