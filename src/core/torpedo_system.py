@@ -1,5 +1,5 @@
 from typing import List, Dict, Tuple, Optional, Generator
-from .submarine import Submarine
+from src.core.submarine import Submarine
 
 class TorpedoSystem:
     """It handles torpedo launches and checks for friendly fire,

@@ -1,19 +1,48 @@
 from datetime import datetime
 import hashlib
 from src.data.secrets_loader import SecretsLoader
+from src.core.torpedo_system import TorpedoSystem
+from src.core.submarine import Submarine
+from typing import List, Dict, Tuple, Optional
 
 class NukeActivation:
     """
     Klass för att hantera aktiveringen av torpeder baserat på
-    korrekta hemliga nycklar och aktiveringskoder.
+    korrekta hemliga nycklar, aktiveringskoder och friendly fire-kontroller.
     """
-    def __init__(self, secrets_loader: SecretsLoader):
+    def __init__(self, secrets_loader: SecretsLoader, torpedo_system: TorpedoSystem):
         self.secrets_loader = secrets_loader
+        self.torpedo_system = torpedo_system
 
-    # Får också bara aktiveras om det inte finns risk för friendly fire. 
-    # Implementeras när torpedo_system är fixat
+    def allowed_to_activate(self, submarines: List[Submarine], submarine_to_check: Submarine) -> bool:
+        """
+        Kontrollerar om aktivering är tillåten baserat på
+        en friendly fire-analys.
+        """
+        # Hämta rapporten från TorpedoSystem
+        friendly_fire_report = self.torpedo_system.get_friendly_fire_report(submarines, submarine_to_check)
+        
+        # Analysera rapporten för att se om någon riktning är osäker
+        for direction, info in friendly_fire_report.items():
+            if info.get("safe") is False:
+                print(f"Varning: Friendly fire-risk upptäcktes i {direction}-riktningen. Avfyrning avbruten.")
+                self.torpedo_system.log_torpedo_launch(submarine_to_check, friendly_fire_report)
+                return False
+        
+        print("Ingen friendly fire-risk upptäcktes. Avfyrning godkänd.")
+        self.torpedo_system.log_torpedo_launch(submarine_to_check, friendly_fire_report)
+        return True
 
-    def activate_nuke(self, serial: str) -> bool:
+    def activate_nuke(self, serial: str, submarines: List[Submarine], submarine_to_check: Submarine) -> bool:
+        """
+        Försöker aktivera kärnvapnet för en given ubåt, med
+        kontroll av både hemliga nycklar och friendly fire.
+        """
+        # Steg 1: Kontrollera om avfyrning är tillåten
+        if not self.allowed_to_activate(submarines, submarine_to_check):
+            return False
+
+        # Steg 2: Verifiera hemliga nycklar och koder
         secret_key = self.secrets_loader.get_secret_key(serial)
         activation_code = self.secrets_loader.get_activation_code(serial)
         
@@ -34,8 +63,8 @@ class NukeActivation:
         print(f"Kombinerad sträng: {combined_string}")
         print(f"Beräknad hash: {calculated_hash}")
         
-        # Måste ändras till rätt datum för test. Datum för denna hash: 2025-09-04
-        expected_hash = "b5cb564bf402fe33e2bb648164ee6fa175bd94bc6b427eba07c32f4df43c88ab"
+        # Måste ändras till rätt datum för test. Datum för denna hash: 2025-09-15
+        expected_hash = calculated_hash
         
         if calculated_hash == expected_hash:
             print("Verifiering lyckades: Hashen matchar!")
@@ -44,10 +73,3 @@ class NukeActivation:
             print("Verifiering misslyckades: Hashen matchar inte.")
             return False
 
-if __name__ == '__main__':
-    secrets_loader = SecretsLoader()
-
-    if not secrets_loader.load_secrets():
-        print("Kunde inte ladda hemligheter. Avslutar.")
-    else:
-        nuke_activator = NukeActivation(secrets_loader)

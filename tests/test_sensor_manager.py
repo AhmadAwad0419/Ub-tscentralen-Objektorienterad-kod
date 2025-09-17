@@ -28,7 +28,8 @@ def test_analyze_data(sensor_manager):
     contents = "1010\n1100\n0000\n"
     file_path = create_temp_file(contents)
     error_count, pattern_count = sensor_manager.analyze_data(file_path)
-    assert error_count == 7  # 2 in 1010, 2 in 1100, 3 in 0000
+    # error_count borde vara 8. 2 in 1010, 2 in 1100, 4 in 0000. Testet misslyckas annars
+    assert error_count == 8  # 2 in 1010, 2 in 1100, 3 in 0000
     assert pattern_count == {"1010": 1, "1100": 1, "0000": 1}
     os.remove(file_path)
 
@@ -52,7 +53,8 @@ def test_process_sensor_file(sensor_manager):
     sensor_manager.process_sensor_file(input_path, output_path)
     with open(output_path, 'r') as f:
         content = f.read()
-    assert "Total Errors: 4" in content
+        # "Total Errors" borde vara 6. 2 i 1010, 2 i 1010, 2 1100. Testet misslyckas annars
+    assert "Total Errors: 6" in content
     assert "1010: 2" in content
     assert "1100: 1" in content
     os.remove(input_path)

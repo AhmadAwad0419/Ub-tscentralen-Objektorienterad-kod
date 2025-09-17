@@ -1,5 +1,7 @@
 import sys
 import os
+import pytest
+from unittest.mock import Mock
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
@@ -7,12 +9,9 @@ if PROJECT_ROOT not in sys.path:
 
 from src.core.movement_manager import MovementManager
 
-def test_movement_manager():
+# Pytest fixtures
 
-    print("--- TESTAR MOVEMENTS MANAGER ---")
-    movement_manager = MovementManager()
-    
-
-if __name__ == "__main__":
-    test_movement_manager()
+@pytest.fixture
+def mock_movement_report():
+    ...
 

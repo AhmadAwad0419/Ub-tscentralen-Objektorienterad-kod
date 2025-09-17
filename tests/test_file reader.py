@@ -1,89 +1,94 @@
-import sys
+import pytest
 import os
-import threading
-import queue
-from itertools import islice
+import sys
+import tempfile
 
+# Lägger till projektets rotkatalog till Python-sökvägen för att kunna importera moduler
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.data.file_reader import FileReader
-from tests.test_path import get_random_drone_id
 
-test_drone_id = get_random_drone_id()
-
-def file_reader_thread(file_reader, drone_id, file_type, data_queue):
+# Pytest fixtures
+@pytest.fixture
+def file_reader():
     """
-    Funktion som körs i en egen tråd för att läsa en fil
-    och placera varje rad i en kö.
+    Fixture som skapar en instans av FileReader för varje test.
     """
-    print(f"Startar tråd för att läsa {file_type} för ubåt {drone_id}")
+    return FileReader()
 
-    # Ändra till None för att läsa alla rader i filerna
-    lines_to_read = 10
-    
-    if file_type == 'movements':
-        # Anropar generatorn för rörelser
-        for command, value in islice(file_reader.load_movements(drone_id), lines_to_read):
-            if command and value is not None:
-                data_queue.put((file_type, command, value))
-    
-    elif file_type == 'sensors':
-        # Anropar generatorn för sensordata
-        for line in islice(file_reader.load_sensor_data(drone_id), lines_to_read):
-            if line is not None:
-                data_queue.put((file_type, line))
-    
-    # Signalerar att tråden är klar
-    data_queue.put(None)
-    print(f"Tråden för {file_type} är klar.")
+@pytest.fixture
+def monkeypatch_paths(monkeypatch):
+    """
+    Fixture som använder monkeypatch för att peka om de interna sökvägarna
+    i FileReader till temporära filer. Detta garanterar att testerna
+    är isolerade och inte beroende av den verkliga filstrukturen.
+    """
+    # Skapa temporär mapp för testfiler
+    temp_dir = tempfile.TemporaryDirectory()
+    temp_path = temp_dir.name
 
-if __name__ == "__main__":
-    reader = FileReader()
-    
-    # Skapa en trådsäker kö för att dela data
-    data_queue = queue.Queue()
-    
-    # Skapa trådarna för varje filinläsning
-    movement_thread = threading.Thread(
-        target=file_reader_thread,
-        args=(reader, test_drone_id, 'movements', data_queue)
-    )
-    
-    sensor_thread = threading.Thread(
-        target=file_reader_thread,
-        args=(reader, test_drone_id, 'sensors', data_queue)
-    )
-    
-    # Starta trådarna
-    movement_thread.start()
-    sensor_thread.start()
-    
-    finished_threads = 0
-    
-    # Konsument-loop i huvudtråden
-    while finished_threads < 2:
-        # Hämta data från kön
-        data = data_queue.get()
-        
-        if data is None:
-            finished_threads += 1
-            continue
-        
-        # Bearbeta datan beroende på typ
-        file_type = data[0]
-        if file_type == 'movements':
-            command, value = data[1], data[2]
-            print(f"Bearbetar rörelse: Command={command}, Value={value}")
-        
-        elif file_type == 'sensors':
-            line = data[1]
-            print(f"Bearbetar sensordata: Line={line}")
-        
-        # Säger till kön att vi är klara med en uppgift
-        data_queue.task_done()
-    
-    print("\nAlla trådar är klara och all data har bearbetats.")
+    # Skapa temporära filer med känt innehåll
+    movement_path = os.path.join(temp_path, "test_movements.txt")
+    with open(movement_path, "w", encoding='utf-8') as f:
+        f.write("UP 10\nDOWN 20\nFORWARD 5\nINVALID LINE\nBACKWARD 15")
 
+    sensor_path = os.path.join(temp_path, "test_sensor_data.txt")
+    with open(sensor_path, "w", encoding='utf-8') as f:
+        f.write("101010\n111100\n000000")
+
+    # Monkeypatchar de funktioner i FileReader som returnerar sökvägar
+    monkeypatch.setattr("src.data.file_reader.movement_file_path", lambda drone_id: movement_path)
+    monkeypatch.setattr("src.data.file_reader.sensor_file_path", lambda drone_id: sensor_path)
+
+    # Returnerar sökvägarna för användning i testerna, om det behövs
+    yield {
+        "movement_path": movement_path,
+        "sensor_path": sensor_path
+    }
+    # Städar upp den temporära mappen efter att testerna är klara
+    temp_dir.cleanup()
+
+# Testfunktioner 
+
+def test_load_movements_correctly(file_reader, monkeypatch_paths):
+    """
+    Testar att load_movements läser och bearbetar kommandon korrekt
+    från en temporär fil.
+    """
+    movements = list(file_reader.load_movements("dummy_drone_id"))
+    
+    expected_result = [("UP", 10), ("DOWN", 20), ("FORWARD", 5), None, ("BACKWARD", 15)]
+    assert movements == expected_result
+
+
+def test_load_movements_file_not_found(file_reader, monkeypatch):
+    """
+    Testar hur load_movements hanterar ett fel när en fil inte hittas.
+    """
+    monkeypatch.setattr("src.data.file_reader.movement_file_path", lambda drone_id: "/non/existent/path/file.txt")
+    
+    movements = list(file_reader.load_movements("dummy_drone_id"))
+    assert movements == [None]
+
+
+def test_load_sensor_data_correctly(file_reader, monkeypatch_paths):
+    """
+    Testar att load_sensor_data läser rader korrekt från en temporär fil.
+    """
+    sensor_data = list(file_reader.load_sensor_data("dummy_drone_id"))
+    
+    expected_result = ["101010", "111100", "000000"]
+    assert sensor_data == expected_result
+
+
+def test_load_sensor_data_file_not_found(file_reader, monkeypatch):
+    """
+    Testar hur load_sensor_data hanterar ett fel när en fil inte hittas.
+    """
+    monkeypatch.setattr("src.data.file_reader.sensor_file_path", lambda drone_id: "/non/existent/path/sensor.txt")
+    
+    sensor_data = list(file_reader.load_sensor_data("dummy_drone_id"))
+    assert sensor_data == [None]
 
