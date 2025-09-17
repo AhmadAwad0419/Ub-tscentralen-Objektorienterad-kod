@@ -54,6 +54,14 @@ Ub-tscentralen-Objektorienterad-kod/
 │   │   ├── logger.py
 │   │   └── validators.py
 │   └── main.py
+└── tests/
+    ├── test_file reader.py
+    ├── test_movement_manager.py
+    ├── test_nuke_activation.py
+    ├── test_path.py
+    ├── test_secrets.py
+    ├── test_sensor_manager.py
+    └── test_submarine.py
 ```
 
 ### Directory Breakdown:
@@ -67,6 +75,7 @@ Ub-tscentralen-Objektorienterad-kod/
     *   `logs/`: Stores system log files.
     *   `utils/`: Utility functions and helper modules, such as `logger.py` and `validators.py`.
     *   `main.py`: The entry point of the application.
+*   `tests/`: Contains unit tests for various components of the project.
 
 
 ## Core Components and Functionality
@@ -156,5 +165,10 @@ To run the main simulation, execute `main.py` from the `src` directory:
 python src/main.py
 ```
 
+## Testing
 
+Unit tests are provided in the `tests/` directory. To run the tests, navigate to the project root and execute `pytest` (assuming `pytest` is installed):
 
+```bash
+pytest
+```
