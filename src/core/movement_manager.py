@@ -1,16 +1,17 @@
 from data.file_reader import FileReader
 from .collision_checker import CollisionChecker
 from .torpedo_system import TorpedoSystem
+from time import sleep
 
 class MovementManager:
     def __init__(self):
-        self.submarines = []
+        self.submarines = {}  # Dictionary: {id: submarine_object}
         self.active_generators = {}
 
     def load_submarines(self, submarines_list):
         file_reader = FileReader()
         for sub in submarines_list:
-            self.submarines.append(sub)
+            self.submarines[sub.id] = sub  # Store by ID
             self.active_generators[sub.id] = file_reader.load_movements(sub.id)
 
     def move_from_position_and_distance(self, submarine, direction: str, distance: int) -> None:
@@ -33,14 +34,22 @@ class MovementManager:
         submarine.movements.append((direction, distance))
 
     def start_central(self):
-        while self.active_generators:
+        collision_checker = CollisionChecker()
+
+        while any(sub.is_active for sub in self.submarines.values()):
             finished_subs = []
-            for sub_id, generator in self.active_generators.items():
+
+            # Process movements for all active submarines
+            for sub_id, generator in list(self.active_generators.items()):
+                sub = self.submarines.get(sub_id)
+                if not sub or not sub.is_active:
+                    continue
+                    
                 try:
                     movement = next(generator)
                     if movement is not None:
                         command, value = movement
-                        sub = next((s for s in self.submarines if s.id == sub_id), None)
+                        sub = self.submarines.get(sub_id)
                         if sub is not None:
                             self.move_from_position_and_distance(sub, command, value)
                         else:
@@ -48,24 +57,35 @@ class MovementManager:
                 except StopIteration:
                     finished_subs.append(sub_id)
             
-            # Ta bort ubåtar som är färdiga
-            for sub_id in finished_subs:        
-                del self.active_generators[sub_id]
-                    
-        #Check for collisions after this batch of movements
-        new_collisions = CollisionChecker().check_for_collisions(self.submarines)
-        if new_collisions:
-                for sub1, sub2, position in new_collisions:
-                    self.collision_checker.log_collision(sub1, sub2, position)
-                    for sid in (getattr(sub1, "id", None), getattr(sub2, "id", None)):
-                        if sid in self.active_generators:
-                            del self.active_generators[sid]
-        else:
-            print("No collisions detected in this round.")
+            # Remove finished submarines
+            for sub_id in finished_subs:
+                if sub_id in self.active_generators:        
+                    del self.active_generators[sub_id]
             
-        
-        # Run friendly-fire checks for torpedoes using final positions.
-        self.torpedo_system = TorpedoSystem()
-        for sub in self.submarines:
-            report = self.torpedo_system.get_friendly_fire_report(self.submarines, sub)
-            self.torpedo_system.log_torpedo_launch(sub, report)
+            # Check collisions only on active submarines
+            active_subs = [s for s in self.submarines.values() if s.is_active]
+            new_collisions = collision_checker.check_for_collisions(active_subs)
+            
+            for sub1, sub2, position in new_collisions:
+                sub1.is_active = False
+                sub2.is_active = False
+
+                if sub1.id in self.active_generators:
+                    del self.active_generators[sub1.id]
+                if sub2.id in self.active_generators:
+                    del self.active_generators[sub2.id]  
+
+            if not self.active_generators:
+                break
+
+            sleep(0.5)
+
+        # Run friendly-fire checks
+        torpedo_system = TorpedoSystem()
+        for sub in self.submarines.values():
+            report = torpedo_system.get_friendly_fire_report(list(self.submarines.values()), sub)
+            torpedo_system.log_torpedo_launch(sub, report)
+
+            #self._calculate_statistics()
+            #self._final_report()
+            #self._update_gui_with_final_positions()

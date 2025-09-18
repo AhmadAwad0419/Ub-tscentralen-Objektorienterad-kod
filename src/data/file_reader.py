@@ -27,6 +27,7 @@ class FileReader:
                         try:
                             value = int(value_str)
                             yield (command, value)
+                            print(command, value)
                         except ValueError:
                             main_logger.warning(f"Varning: Ogiltigt värde för kommando '{command}' i filen: {file_path}")
                             yield None

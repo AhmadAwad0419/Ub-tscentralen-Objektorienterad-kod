@@ -14,6 +14,7 @@ class Submarine:
         self.vertical_position: int = 0
         self.horizontal_position: int = 0
         self.movements: List[Tuple[str, int]] = []
+        self.is_active: bool = True
 
     
     def load_movements_data_from_file(self, filename):
