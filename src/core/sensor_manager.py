@@ -30,11 +30,17 @@ class SensorManager:
     def save_analysis(self, analysis, output_path):
         """Save the analysis results to a file."""
         error_count, pattern_count = analysis
+        
+        # Calculate total faults (sum of all pattern occurrences)
+        total_faults = sum(count for count in pattern_count.values())
+        
         with open(output_path, 'w') as file:
             file.write(f"Total Errors: {error_count}\n")
             file.write("Pattern Counts:\n")
             for pattern, count in pattern_count.items():
                 file.write(f"{pattern}: {count}\n")
+            file.write("\n------------------------\n")
+            file.write(f"Total Fault Patterns: {total_faults}")
 
     def process_sensor_file(self, input_path, output_path):
         """Process a sensor data file and save the analysis."""
@@ -60,6 +66,23 @@ class SensorManager:
 
         # Process the sensor data file
         self.process_sensor_file(file_path, output_path)
+
+if __name__ == "__main__":
+    # Create instance of SensorManager
+    manager = SensorManager()
+    
+    # Define paths
+    input_file = "files/Sensordata/10053472-25.txt"
+    output_file = "analysis_result.txt"
+    
+    # Process the file
+    print(f"Processing sensor file: {input_file}")
+    manager.process_sensor_file(input_file, output_file)
+    
+    # Read and display results
+    print("\nAnalysis results:")
+    with open(output_file, 'r') as f:
+        print(f.read())
 
 
 
