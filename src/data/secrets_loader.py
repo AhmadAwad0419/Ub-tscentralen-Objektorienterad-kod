@@ -1,6 +1,7 @@
 import os
-from src.config.paths import secret_key_file_path, activation_codes_file_path
 from typing import Dict, Generator, Tuple
+from src.config.paths import secret_key_file_path, activation_codes_file_path
+from src.utils.logger import secrets_logger
 
 class SecretsLoader:
     """
@@ -30,7 +31,7 @@ class SecretsLoader:
                         value = parts[1].strip()
                         yield serial_number, value
                     else:
-                        print(f"Varning: Ogiltigt format på rad i filen: {file_path}")
+                        secrets_logger.secret_loader(f"Ogiltigt format på rad i filen: {file_path}", level="WARNING")
 
     def load_secrets(self) -> bool:
         """
@@ -54,10 +55,10 @@ class SecretsLoader:
             return True
 
         except FileNotFoundError as e:
-            print(f"Fil hittades inte: {e}")
+            secrets_logger.secret_loader(f"Fil hittades inte: {e}", level="ERROR")
             return False
         except Exception as e:
-            print(f"Ett oväntat fel uppstod vid inläsning av hemligheter: {e}")
+            secrets_logger.secret_loader(f"Ett oväntat fel uppstod vid inläsning av hemligheter: {e}", level="EXCEPTION")
             return False
 
     def get_secret_key(self, serial_number: str) -> str | None:

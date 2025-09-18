@@ -1,6 +1,8 @@
 from typing import List, Tuple, Any
 from .submarine import Submarine
 
+from src.utils.logger import collision_logger
+
 class CollisionChecker:
     """Check for collisions between submarines based on their positions."""
     def __init__(self):
@@ -30,7 +32,7 @@ class CollisionChecker:
 
                 if entry_ids not in self.collision_log:
                     self.collision_log.append(entry_ids)
-                    print(f"Collision detected between {id1} and {id2} at position {pos}")
+                    collision_logger.collision(f"Collision detected between {id1} and {id2} at position {pos}", level="CRITICAL")
                     new_collisions.append((other_sub, sub, pos))
 
                     #Remove both subs from the map right away (prevents ghost collisions)

@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 class Submarine:
     """A submarine drone with unique serial number and position tracking."""
-    def __init__(self, id: int) -> None:
+    def __init__(self, id: str) -> None:
         # # Control the serial number format
         # parts = serial_number.split('-')
         # if len(parts) != 2 or not (parts[0].isdigit() and parts[1].isdigit()):
@@ -17,39 +17,39 @@ class Submarine:
         self.is_active: bool = True
 
     
-    def load_movements_data_from_file(self, filename):
-        """Read movement commands from file and yield them one at a time."""
-        with open(filename, "r") as file:
-            for line in file:
-                parts = line.strip().split()
-                if len(parts) != 2:
-                    continue
-                direction, distance_str = parts
-                try:
-                    distance = int(distance_str)
-                    yield direction, distance 
-                except ValueError:
-                    print(f"Invalid line skipped: '{line.strip()}'")
+    # def load_movements_data_from_file(self, filename):
+    #     """Read movement commands from file and yield them one at a time."""
+    #     with open(filename, "r") as file:
+    #         for line in file:
+    #             parts = line.strip().split()
+    #             if len(parts) != 2:
+    #                 continue
+    #             direction, distance_str = parts
+    #             try:
+    #                 distance = int(distance_str)
+    #                 yield direction, distance 
+    #             except ValueError:
+    #                 print(f"Invalid line skipped: '{line.strip()}'")
         
-    def move_from_position_and_distance(self, direction: str, distance: int) -> None:
-        """Update position based on direction and distance."""
+    # def move_from_position_and_distance(self, direction: str, distance: int) -> None:
+    #     """Update position based on direction and distance."""
         
-        if direction not in {"up", "down", "forward"}:
-            raise ValueError(f"Invalid direction: {direction}")
-        if distance < 0:
-            raise ValueError("Distance must be non-negative")
+    #     if direction not in {"up", "down", "forward"}:
+    #         raise ValueError(f"Invalid direction: {direction}")
+    #     if distance < 0:
+    #         raise ValueError("Distance must be non-negative")
         
-        self.movements.append((direction, distance))
+    #     self.movements.append((direction, distance))
         
-        if direction == "up":
-            self.vertical_position -= distance
-        elif direction == "down":
-            self.vertical_position += distance
-        elif direction == "forward":
-            self.horizontal_position += distance    
+    #     if direction == "up":
+    #         self.vertical_position -= distance
+    #     elif direction == "down":
+    #         self.vertical_position += distance
+    #     elif direction == "forward":
+    #         self.horizontal_position += distance    
         
-        """log the move"""
-        self.movements.append((direction, distance))
+    #     """log the move"""
+    #     self.movements.append((direction, distance))
 
 
     def get_position(self) -> Tuple[int, int]:
