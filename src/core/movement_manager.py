@@ -1,91 +1,49 @@
-from data.file_reader import FileReader
-from .collision_checker import CollisionChecker
-from .torpedo_system import TorpedoSystem
-from time import sleep
+# src/core/movement_manager.py
+import time
+from typing import Dict, List
+from src.core.submarine import Submarine
+from src.data.file_reader import FileReader
+from src.core.collision_checker import CollisionChecker
 
 class MovementManager:
-    def __init__(self):
-        self.submarines = {}  # Dictionary: {id: submarine_object}
-        self.active_generators = {}
+    """
+    Synchronous orchestrator: steps all submarines in lockstep rounds.
+    """
 
-    def load_submarines(self, submarines_list):
-        file_reader = FileReader()
-        for sub in submarines_list:
-            self.submarines[sub.id] = sub  # Store by ID
-            self.active_generators[sub.id] = file_reader.load_movements(sub.id)
+    def __init__(self, reader: FileReader, tick_delay: float = 0.0):
+        self.reader = reader
+        self.submarines: Dict[str, Submarine] = {}
+        self.collision_checker = CollisionChecker()
+        self.tick_delay = tick_delay
 
-    def move_from_position_and_distance(self, submarine, direction: str, distance: int) -> None:
-        """Update position based on direction and distance."""
-    
-        if direction not in {"up", "down", "forward"}:
-            raise ValueError(f"Invalid direction: {direction}")
-        if distance < 0:
-            raise ValueError("Distance must be non-negative")
-        
-        # Update position
-        if direction == "up":
-            submarine.vertical_position -= distance
-        elif direction == "down":
-            submarine.vertical_position += distance
-        elif direction == "forward":
-            submarine.horizontal_position += distance    
-        
-        # Log the move
-        submarine.movements.append((direction, distance))
+    @property
+    def active_subs(self) -> List[Submarine]:
+        return [s for s in self.submarines.values() if s.is_active]
 
-    def start_central(self):
-        collision_checker = CollisionChecker()
+    def load_submarines(self, subs: List[Submarine]):
+        for sub in subs:
+            self.submarines[sub.id] = sub
+            sub.attach_generator(self.reader.load_movements(sub.id))
 
-        while any(sub.is_active for sub in self.submarines.values()):
-            finished_subs = []
+    def run(self):
+        round_no = 0
+        while any(s.is_active for s in self.submarines.values()):
+            round_no += 1
+            active_count = len(self.active_subs)
+            print(f"\n--- Round {round_no} ---  ({active_count} active submarines)")
 
-            # Process movements for all active submarines
-            for sub_id, generator in list(self.active_generators.items()):
-                sub = self.submarines.get(sub_id)
-                if not sub or not sub.is_active:
-                    continue
-                    
-                try:
-                    movement = next(generator)
-                    if movement is not None:
-                        command, value = movement
-                        sub = self.submarines.get(sub_id)
-                        if sub is not None:
-                            self.move_from_position_and_distance(sub, command, value)
-                        else:
-                            print(f"Warning: Submarine id {sub_id} is not found. Skipping")
-                except StopIteration:
-                    finished_subs.append(sub_id)
-            
-            # Remove finished submarines
-            for sub_id in finished_subs:
-                if sub_id in self.active_generators:        
-                    del self.active_generators[sub_id]
-            
-            # Check collisions only on active submarines
-            active_subs = [s for s in self.submarines.values() if s.is_active]
-            new_collisions = collision_checker.check_for_collisions(active_subs)
-            
-            for sub1, sub2, position in new_collisions:
-                sub1.is_active = False
-                sub2.is_active = False
+            # Each sub takes one step
+            for sub in self.active_subs:
+                sub.step()
 
-                if sub1.id in self.active_generators:
-                    del self.active_generators[sub1.id]
-                if sub2.id in self.active_generators:
-                    del self.active_generators[sub2.id]  
+            # Collision check
+            collisions = self.collision_checker.check_for_collisions(self.active_subs)
+            for s1, s2, _ in collisions:
+                s1.is_active = False
+                s2.is_active = False
 
-            if not self.active_generators:
-                break
+            if self.tick_delay:
+                time.sleep(self.tick_delay)
 
-            sleep(0.5)
+        print("SLUT")
 
-        # Run friendly-fire checks
-        torpedo_system = TorpedoSystem()
-        for sub in self.submarines.values():
-            report = torpedo_system.get_friendly_fire_report(list(self.submarines.values()), sub)
-            torpedo_system.log_torpedo_launch(sub, report)
-
-            #self._calculate_statistics()
-            #self._final_report()
-            #self._update_gui_with_final_positions()
