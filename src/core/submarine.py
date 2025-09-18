@@ -1,62 +1,59 @@
-from typing import List, Tuple
+# src/core/submarine.py
+from typing import Optional, Generator, Tuple
 
 class Submarine:
-    """A submarine drone with unique serial number and position tracking."""
-    def __init__(self, id: str) -> None:
-        # # Control the serial number format
-        # parts = serial_number.split('-')
-        # if len(parts) != 2 or not (parts[0].isdigit() and parts[1].isdigit()):
-        #     raise ValueError(f"Invalid serial number format: {serial_number}")
-        # if len(parts[0]) != 8 or len(parts[1]) != 2:
-        #     raise ValueError(f"Invalid serial number format: {serial_number}")
-        
-        self.id: str = id
-        self.vertical_position: int = 0
-        self.horizontal_position: int = 0
-        self.movements: List[Tuple[str, int]] = []
-        self.is_active: bool = True
+    """
+    A submarine drone that runs step by step (synchronous).
+    Owns its own movement generator and state.
+    """
+    def __init__(self, id: str):
+        self.id = id
+        self._x = 0
+        self._y = 0
+        self._active = True
+        self.movements: list[tuple[str, int]] = []
+        self._gen: Optional[Generator[tuple[str,int], None, None]] = None
 
-    
-    # def load_movements_data_from_file(self, filename):
-    #     """Read movement commands from file and yield them one at a time."""
-    #     with open(filename, "r") as file:
-    #         for line in file:
-    #             parts = line.strip().split()
-    #             if len(parts) != 2:
-    #                 continue
-    #             direction, distance_str = parts
-    #             try:
-    #                 distance = int(distance_str)
-    #                 yield direction, distance 
-    #             except ValueError:
-    #                 print(f"Invalid line skipped: '{line.strip()}'")
-        
-    # def move_from_position_and_distance(self, direction: str, distance: int) -> None:
-    #     """Update position based on direction and distance."""
-        
-    #     if direction not in {"up", "down", "forward"}:
-    #         raise ValueError(f"Invalid direction: {direction}")
-    #     if distance < 0:
-    #         raise ValueError("Distance must be non-negative")
-        
-    #     self.movements.append((direction, distance))
-        
-    #     if direction == "up":
-    #         self.vertical_position -= distance
-    #     elif direction == "down":
-    #         self.vertical_position += distance
-    #     elif direction == "forward":
-    #         self.horizontal_position += distance    
-        
-    #     """log the move"""
-    #     self.movements.append((direction, distance))
+    @property
+    def position(self) -> Tuple[int,int]:
+        return self._x, self._y
 
+    @property
+    def is_active(self) -> bool:
+        return self._active
 
-    def get_position(self) -> Tuple[int, int]:
-        """Return the current position as (horizontal, vertical)."""
-        return (self.horizontal_position, self.vertical_position)
-    
-    def __repr__(self) -> str:
-        return (f"Submarine(serial_number={self.id}, "
-                f"horizontal_position={self.horizontal_position}, "
-                f"vertical_position={self.vertical_position})")
+    @is_active.setter
+    def is_active(self, val: bool):
+        self._active = bool(val)
+
+    def attach_generator(self, gen: Generator[tuple[str,int], None, None]):
+        self._gen = gen
+
+    def apply_movement(self, direction: str, distance: int):
+        if direction not in {"up", "down", "forward"}:
+            raise ValueError(f"Invalid direction {direction}")
+        if distance < 0:
+            raise ValueError("Distance must be non-negative")
+
+        self.movements.append((direction, distance))
+        ops = {
+            "up": lambda: setattr(self, "_y", self._y - distance),
+            "down": lambda: setattr(self, "_y", self._y + distance),
+            "forward": lambda: setattr(self, "_x", self._x + distance),
+        }
+        ops[direction]()
+        print(f"Sub {self.id} moved {direction} {distance} → pos {self.position}")
+        
+    def step(self):
+        """Perform one movement from the generator if available."""
+        if not self._gen or not self._active:
+            return
+
+        try:
+            command, value = next(self._gen)
+            self.apply_movement(command, value)
+        except StopIteration:
+            self._active = False
+
+    def __repr__(self):
+        return f"Submarine({self.id}, pos={self.position}, active={self.is_active})"

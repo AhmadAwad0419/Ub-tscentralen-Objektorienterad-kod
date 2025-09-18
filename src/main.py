@@ -1,47 +1,86 @@
-import sys
-import os
+# src/main.py
+import sys, os, asyncio
 
+# --- Ensure project root is in sys.path ---
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.config.paths import MOVEMENT_REPORTS_DIR
-from src.data.file_reader import FileReader
-from src.core.submarine import Submarine
-from src.core.movement_manager import MovementManager
-from src.core.sensor_manager import SensorManager
 from src.data.secrets_loader import SecretsLoader
-from src.core.torpedo_system import TorpedoSystem
-from src.core.nuke_activation import NukeActivation
+
+
+def parse_speed_arg(default: float = 1.0) -> float:
+    """Parse --speed <float> from command line."""
+    if "--speed" in sys.argv:
+        try:
+            idx = sys.argv.index("--speed")
+            return float(sys.argv[idx + 1])
+        except (ValueError, IndexError):
+            print("Felaktigt värde för --speed, använder standardvärde.")
+    return default
+
+
+def run_sync(tick_delay: float):
+    from src.core.submarine import Submarine
+    from src.data.file_reader import FileReader
+    from src.core.movement_manager import MovementManager
+
+    drone_ids = [
+        f.replace(".txt", "")
+        for f in os.listdir(MOVEMENT_REPORTS_DIR)
+        if f.endswith(".txt")
+    ]
+    subs = [Submarine(id) for id in drone_ids]
+
+    reader = FileReader()
+    manager = MovementManager(reader, tick_delay=tick_delay)
+    manager.load_submarines(subs)
+    manager.run()
+
+
+async def run_async(tick_delay: float):
+    from src.core.submarine_async import Submarine
+    from src.data.file_reader_async import AsyncFileReader
+    from src.core.movement_manager_async import AsyncMovementManager
+
+    drone_ids = [
+        f.replace(".txt", "")
+        for f in os.listdir(MOVEMENT_REPORTS_DIR)
+        if f.endswith(".txt")
+    ]
+    subs = [Submarine(id) for id in drone_ids]
+
+    reader = AsyncFileReader()
+    manager = AsyncMovementManager(reader, tick_delay=tick_delay)
+    await manager.load_submarines(subs)
+    await manager.run()
+
 
 def main():
-    """
-    Huvudfunktion för att starta Ubatscentralen.
-    Ansvarar för att initialisera och koordinera huvudkomponenterna.
-    """
-    print("Startar Ubatscentralen...")
+    if len(sys.argv) > 1 and sys.argv[1] == "--gui":
+        from src.gui.gui2 import main as gui_main
+        gui_main()
+        return
 
-    file_reader = FileReader()
-    movement_manager = MovementManager()
-    sensor_manager = SensorManager() 
-    secrets_loader = SecretsLoader()
-    torpedo_system = TorpedoSystem()
-    nuke_activation = NukeActivation(secrets_loader, torpedo_system)
-    
-    submarines = []
-     
-    drone_ids = [filename.replace(".txt", "") for filename in os.listdir(MOVEMENT_REPORTS_DIR) if filename.endswith(".txt")]
+    # Load secrets (shared)
+    secrets = SecretsLoader()
+    if not secrets.load_secrets():
+        print("Kunde inte ladda hemligheter. Avslutar.")
+        sys.exit(1)
 
-    for drone_id in drone_ids:
-        submarine = Submarine(drone_id)
-        submarines.append(submarine)
+    # Parse optional speed
+    tick_delay = parse_speed_arg(default=1.0)
+    print(f"Tick delay: {tick_delay} sekunder")
 
-    movement_manager.load_submarines(submarines)
-    movement_manager.start_central()
+    # Choose mode
+    if "--sync" in sys.argv:
+        print("Kör i SYNKRONT läge")
+        run_sync(tick_delay)
+    else:
+        print("Kör i ASYNKRONT läge")
+        asyncio.run(run_async(tick_delay))
 
-    
-    #positions = {drone_id: [0,0] for drone_id in drone_ids}
-    #generators = {drone_id: file_reader.load_movements(drone_id) for drone_id in drone_ids}
-        
+
 if __name__ == "__main__":
     main()
