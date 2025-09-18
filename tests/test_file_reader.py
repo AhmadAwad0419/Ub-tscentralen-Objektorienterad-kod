@@ -36,7 +36,7 @@ def monkeypatch_paths(monkeypatch):
 
     sensor_path = os.path.join(temp_path, "test_sensor_data.txt")
     with open(sensor_path, "w", encoding='utf-8') as f:
-        f.write("101010\n111100\n000000")
+        f.write("1\n0\n1\nINVALID\n0")
 
     # Monkeypatchar de funktioner i FileReader som returnerar sökvägar
     monkeypatch.setattr("src.data.file_reader.movement_file_path", lambda drone_id: movement_path)
@@ -59,7 +59,7 @@ def test_load_movements_correctly(file_reader, monkeypatch_paths):
     """
     movements = list(file_reader.load_movements("dummy_drone_id"))
     
-    expected_result = [("UP", 10), ("DOWN", 20), ("FORWARD", 5), None, ("BACKWARD", 15)]
+    expected_result = [("UP", 10), ("DOWN", 20), ("FORWARD", 5), ("BACKWARD", 15)]
     assert movements == expected_result
 
 
@@ -70,16 +70,18 @@ def test_load_movements_file_not_found(file_reader, monkeypatch):
     monkeypatch.setattr("src.data.file_reader.movement_file_path", lambda drone_id: "/non/existent/path/file.txt")
     
     movements = list(file_reader.load_movements("dummy_drone_id"))
-    assert movements == [None]
+    # Generatorn returnerar ingenting om filen inte hittas, så listan är tom.
+    assert movements == []
 
 
 def test_load_sensor_data_correctly(file_reader, monkeypatch_paths):
     """
-    Testar att load_sensor_data läser rader korrekt från en temporär fil.
+    Testar att load_sensor_data läser rader korrekt från en temporär fil
+    och konverterar dem till heltal.
     """
     sensor_data = list(file_reader.load_sensor_data("dummy_drone_id"))
     
-    expected_result = ["101010", "111100", "000000"]
+    expected_result = [1, 0, 1, 0]
     assert sensor_data == expected_result
 
 
@@ -90,5 +92,5 @@ def test_load_sensor_data_file_not_found(file_reader, monkeypatch):
     monkeypatch.setattr("src.data.file_reader.sensor_file_path", lambda drone_id: "/non/existent/path/sensor.txt")
     
     sensor_data = list(file_reader.load_sensor_data("dummy_drone_id"))
-    assert sensor_data == [None]
-
+    # Generatorn returnerar ingenting om filen inte hittas, så listan är tom.
+    assert sensor_data == []

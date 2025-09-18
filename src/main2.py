@@ -1,5 +1,11 @@
 # src/main.py
 import os, sys
+
+# Lägger till projektets rotkatalog till Python-sökvägen för att kunna importera moduler
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 from src.config.paths import MOVEMENT_REPORTS_DIR
 from src.data.secrets_loader import SecretsLoader
 from src.core.submarine import Submarine
