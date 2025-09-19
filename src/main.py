@@ -8,6 +8,9 @@ if PROJECT_ROOT not in sys.path:
 
 from src.config.paths import MOVEMENT_REPORTS_DIR
 from src.data.secrets_loader import SecretsLoader
+from src.core.nuke_activation import NukeActivation
+from src.core.sensor_manager import SensorManager
+from src.core.torpedo_system import TorpedoSystem
 
 
 def parse_speed_arg(default: float = 1.0) -> float:
@@ -37,6 +40,9 @@ def run_sync(tick_delay: float):
     manager = MovementManager(reader, tick_delay=tick_delay)
     manager.load_submarines(subs)
     manager.run()
+    remaining_subs = list(manager.submarines.values())
+    post_run_analysis(remaining_subs)
+    show_menu(remaining_subs)
 
 
 async def run_async(tick_delay: float):
@@ -80,6 +86,89 @@ def main():
     else:
         print("Kör i ASYNKRONT läge")
         asyncio.run(run_async(tick_delay))
+
+def post_run_analysis(subs):
+    print("\n=== Alla ubåtar har nått sina slutpositioner ===\n")
+
+    # --- Sensoranalys ---
+    sensor_manager = SensorManager()
+    for sub in subs:
+        output_path = f"logs/sensor_analysis_{sub.id}.txt"
+        sensor_manager.process_sensor_by_serial(
+            serial_number=sub.id,
+            data_folder="files/Sensordata",
+            output_path=output_path
+        )
+        print(f"Sensoranalys sparad för {sub.id} → {output_path}")
+
+    # --- Torped-check ---
+    torpedo_system = TorpedoSystem()
+    for sub in subs:
+        report = torpedo_system.get_friendly_fire_report(subs, sub)
+        torpedo_system.log_torpedo_launch(sub, report)
+
+    # --- Nuke-aktiveringsexempel ---
+    from src.data.secrets_loader import SecretsLoader
+    secrets = SecretsLoader()
+    secrets.load_secrets()
+
+    nuke = NukeActivation(secrets_loader=secrets, torpedo_system=torpedo_system)
+
+    # Här kan man aktivera för en specifik ubåt (exempel första)
+    if subs:
+        target = subs[0]
+        nuke.activate_nuke(target.id, subs, target)
+
+
+def show_menu(subs):
+    sensor_manager = SensorManager()
+    torpedo_system = TorpedoSystem()
+    secrets = SecretsLoader()
+    secrets.load_secrets()
+    nuke = NukeActivation(secrets_loader=secrets, torpedo_system=torpedo_system)
+
+    while True:
+        print("\n=== Kontrollcentral ===")
+        print("Tillgängliga ubåtar:")
+        for sub in subs:
+            print(f" - {sub.id} vid position {sub.position}")
+        print("\nAlternativ:")
+        print("1. Analysera sensordata för en ubåt")
+        print("2. Kontrollera friendly fire för alla ubåtar")
+        print("3. Aktivera nuke på en ubåt")
+        print("4. Avsluta")
+        choice = input("Val: ").strip()
+
+        if choice == "1":
+            serial = input("Ange ubåtens serienummer (XXXXXXXX-XX): ").strip()
+            output_path = f"logs/sensor_analysis_{serial}.txt"
+            sensor_manager.process_sensor_by_serial(
+                serial_number=serial,
+                data_folder="files/Sensordata",
+                output_path=output_path
+            )
+            print(f"✅ Sensoranalys sparad till {output_path}")
+
+        elif choice == "2":
+            for sub in subs:
+                report = torpedo_system.get_friendly_fire_report(subs, sub)
+                torpedo_system.log_torpedo_launch(sub, report)
+
+        elif choice == "3":
+            serial = input("Ange ubåtens serienummer: ").strip()
+            found = next((s for s in subs if s.id == serial), None)
+            if not found:
+                print("⚠️ Ubåten hittades inte i listan.")
+                continue
+            nuke.activate_nuke(serial, subs, found)
+
+        elif choice == "4":
+            print("Avslutar menyn.")
+            break
+        else:
+            print("⚠️ Ogiltigt val.")
+
+
 
 
 if __name__ == "__main__":

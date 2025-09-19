@@ -1,7 +1,12 @@
 import logging
 import os
 from datetime import datetime
+<<<<<<< Updated upstream
 from typing import Dict
+=======
+from functools import wraps
+
+>>>>>>> Stashed changes
 
 class ExactLevelFilter(logging.Filter):
     def __init__(self, level):
@@ -13,6 +18,7 @@ class ExactLevelFilter(logging.Filter):
     
 class Logger:
     def __init__(self, name: str):
+<<<<<<< Updated upstream
         self.logger = logging.getLogger(name)
         # Sätter loggnivån till DEBUG för att fånga alla meddelanden
         self.logger.setLevel(logging.DEBUG)
@@ -24,9 +30,22 @@ class Logger:
             self.setup_console_handler()
 
     def setup_console_handler(self):
+=======
+        """
+        Initierar loggern och konfigurerar den centrala loggaren.
+        """
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.INFO)
+
+        if not self.logger.handlers:
+            self.setup_handlers()
+            
+    def setup_handlers(self):
+>>>>>>> Stashed changes
         """
         Konfigurerar en hanterare för att skriva ut till konsolen.
         """
+<<<<<<< Updated upstream
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
@@ -39,13 +58,15 @@ class Logger:
         Använder cache för att undvika att skapa samma hanterare flera gånger.
         """
         # Skapar sökvägen till loggmappen
+=======
+>>>>>>> Stashed changes
         log_dir = os.path.join(
             os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")),
             "logs"
         )
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
+        os.makedirs(log_dir, exist_ok=True)
 
+<<<<<<< Updated upstream
         # Använd logger-namnet och loggningsnivån för att skapa ett unikt filnamn
         log_file_name = f"{method_name}_{level}_{datetime.now().strftime('%Y-%m-%d')}.log"
         log_file_path = os.path.join(log_dir, log_file_name)
@@ -125,3 +146,47 @@ if __name__ == '__main__':
     sensor_logger.sensor_error
     
     nuke_logger.nuke_activation
+=======
+        log_file_path = os.path.join(
+            log_dir,
+            f"system_{datetime.now().strftime('%Y-%m-%d')}.log"
+        )
+
+        file_handler = logging.FileHandler(log_file_path)
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        self.logger.addHandler(file_handler)
+
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(logging.Formatter(
+            '%(name)s - %(levelname)s - %(message)s'))
+        self.logger.addHandler(console_handler)
+
+    def info(self, message): self.logger.info(message)
+    def warning(self, message): self.logger.warning(message)
+    def error(self, message): self.logger.error(message)
+    def debug(self, message): self.logger.debug(message)
+
+
+main_logger = Logger('Ubåtssystem')
+
+
+def log_calls(func):
+    """
+    Dekorator som loggar när en funktion anropas och när den är klar.
+    Loggar också eventuella undantag.
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        main_logger.info(f"Startar funktionen '{func.__name__}'")
+        try:
+            result = func(*args, **kwargs)
+            main_logger.info(f"Funktionen '{func.__name__}' körde klart")
+            return result
+        except Exception as e:
+            main_logger.error(f"Fel i funktionen '{func.__name__}': {e}")
+            raise
+    return wrapper
+>>>>>>> Stashed changes

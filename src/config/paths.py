@@ -4,7 +4,7 @@ import pathlib
 
 BASE_DIR = pathlib.Path(__file__).parent.parent.parent
 
-MOVEMENT_REPORTS_DIR = BASE_DIR / "files" / "MovementReports"
+MOVEMENT_REPORTS_DIR = BASE_DIR / "files" / "MovementReports1"
 SENSOR_DATA_DIR = BASE_DIR / "files" / "SensorData"
 SECRETS_DIR = BASE_DIR / "files" / "Secrets"
 

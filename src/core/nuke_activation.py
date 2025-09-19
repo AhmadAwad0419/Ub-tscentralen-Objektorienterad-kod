@@ -17,26 +17,24 @@ class NukeActivation:
         self.secrets_loader = secrets_loader
         self.torpedo_system = torpedo_system
 
-    def allowed_to_activate(self, submarines: List[Submarine], submarine_to_check: Submarine) -> bool:
+    def allowed_to_activate(self, submarines, submarine_to_check):
         """
-        Kontrollerar om aktivering är tillåten baserat på
-        en friendly fire-analys.
+        Kontrollerar om aktivering är tillåten baserat på friendly fire-analys.
         """
         # Hämta rapporten från TorpedoSystem
-        friendly_fire_report: Dict[str, Dict[str, Any]] = self.torpedo_system.get_friendly_fire_report(submarines, submarine_to_check)
-
+        friendly_fire_report = self.torpedo_system.get_friendly_fire_report(submarines, submarine_to_check)
+        
         # Analysera rapporten för att se om någon riktning är osäker
-        is_safe: bool = True
         for direction, info in friendly_fire_report.items():
             if info.get("safe") is False:
-                nuke_logger.nuke_activation(f"Friendly fire-risk upptäcktes i {direction}-riktningen.", level="WARNING")
-                is_safe = False
-                break
-
+                print(f"Varning: Friendly fire-risk upptäcktes i {direction}-riktningen. Avfyrning avbruten.")
+                self.torpedo_system.log_torpedo_launch(submarine_to_check, friendly_fire_report)
+                return False
+        
+        print("Ingen friendly fire-risk upptäcktes. Avfyrning godkänd.")
         self.torpedo_system.log_torpedo_launch(submarine_to_check, friendly_fire_report)
-        if is_safe:
-            nuke_logger.nuke_activation("Ingen friendly fire-risk upptäcktes.", level="INFO")
-        return is_safe
+        return True
+
 
     def activate_nuke(self, serial: str, submarines: List[Submarine], submarine_to_check: Submarine) -> bool:
         """
