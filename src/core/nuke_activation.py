@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Optional
 from src.data.secrets_loader import SecretsLoader
 from src.core.torpedo_system import TorpedoSystem
 from src.core.submarine import Submarine
-from src.utils.logger import nuke_logger
+from src.utils.logger import nuke_logger, log_calls
 
 class NukeActivation:
     """
@@ -25,23 +25,21 @@ class NukeActivation:
         friendly_fire_report = self.torpedo_system.get_friendly_fire_report(submarines, submarine_to_check)
         
         # Analysera rapporten för att se om någon riktning är osäker
+        self.torpedo_system.log_torpedo_launch(submarine_to_check, friendly_fire_report)
         for direction, info in friendly_fire_report.items():
             if info.get("safe") is False:
-                print(f"Varning: Friendly fire-risk upptäcktes i {direction}-riktningen. Avfyrning avbruten.")
-                self.torpedo_system.log_torpedo_launch(submarine_to_check, friendly_fire_report)
+                nuke_logger.nuke_activation(f"Varning: Friendly fire-risk upptäcktes i {direction}-riktningen. Avfyrning avbruten.", level="WARNING")
                 return False
         
-        print("Ingen friendly fire-risk upptäcktes. Avfyrning godkänd.")
-        self.torpedo_system.log_torpedo_launch(submarine_to_check, friendly_fire_report)
+        nuke_logger.nuke_activation("Ingen friendly fire-risk upptäcktes. Avfyrning godkänd.", level="INFO")
         return True
-
 
     def activate_nuke(self, serial: str, submarines: List[Submarine], submarine_to_check: Submarine) -> bool:
         """
         Försöker aktivera kärnvapnet för en given ubåt, med
         kontroll av både hemliga nycklar och friendly fire.
         """
-        # Kontrollera om avfyrning är tillåten
+        # Kontrollera om avfyrning är tillåten baserat på friendly fire
         if not self.allowed_to_activate(submarines, submarine_to_check):
             return False
 

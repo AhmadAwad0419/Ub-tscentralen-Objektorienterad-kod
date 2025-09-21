@@ -42,7 +42,7 @@ class Submarine:
             "forward": lambda: setattr(self, "_x", self._x + distance),
         }
         ops[direction]()
-        print(f"Sub {self.id} moved {direction} {distance} → pos {self.position}")
+        #print(f"Sub {self.id} moved {direction} {distance} → pos {self.position}")
         
     def step(self):
         """Perform one movement from the generator if available."""

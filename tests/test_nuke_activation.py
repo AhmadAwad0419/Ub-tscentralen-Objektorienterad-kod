@@ -41,12 +41,14 @@ def mock_submarine_squadron():
     """
     mock_shooter = Mock(spec=Submarine)
     mock_shooter.id = "DRONE_1"
-    mock_shooter.get_position.return_value = (10, 10)
+    # LÖSNING: Tilldela position direkt istället för att använda en icke-existerande metod.
+    mock_shooter.position = (10, 10)
 
     mock_target = Mock(spec=Submarine)
     mock_target.id = "DRONE_2"
     # Samma kolumn, simulerar friendly fire-risk
-    mock_target.get_position.return_value = (10, 20) 
+    # LÖSNING: Tilldela position direkt
+    mock_target.position = (10, 20) 
 
     return [mock_shooter, mock_target], mock_shooter, mock_target
 
@@ -59,10 +61,11 @@ def nuke_activation_instance(mock_secrets_loader, mock_torpedo_system):
 
 # Testfunktioner för Pytest
 
-def test_activate_nuke_no_friendly_fire(nuke_activation_instance, mock_torpedo_system, monkeypatch):
+def test_activate_nuke_no_friendly_fire(nuke_activation_instance, mock_torpedo_system, monkeypatch, mock_submarine_squadron):
     """
     Testar att en nuke kan aktiveras när det inte finns någon risk för friendly fire.
     """
+    submarines, shooter, _ = mock_submarine_squadron
     # Mocka get_friendly_fire_report att returnera en säker rapport
     safe_report = {
         "up": {"safe": True, "first_target": None},
@@ -74,13 +77,10 @@ def test_activate_nuke_no_friendly_fire(nuke_activation_instance, mock_torpedo_s
     # Mocka datetime.now för att simulera ett specifikt datum för hash-verifieringen
     monkeypatch.setattr("src.core.nuke_activation.datetime", Mock(now=lambda: datetime(2025, 9, 15)))
     
-    # Skapa dummy-data för att skicka till activate_nuke
-    mock_submarine = Mock(spec=Submarine, id="DRONE_1")
-    
     result = nuke_activation_instance.activate_nuke(
-        serial="DRONE_1", 
-        submarines=[mock_submarine], 
-        submarine_to_check=mock_submarine
+        serial=shooter.id, 
+        submarines=submarines, 
+        submarine_to_check=shooter
     )
     
     assert result is True
@@ -96,7 +96,7 @@ def test_activate_nuke_with_friendly_fire_risk(nuke_activation_instance, mock_to
     # Mocka get_friendly_fire_report att returnera en rapport med risk
     risky_report = {
         "up": {"safe": True, "first_target": None},
-        "down": {"safe": False, "first_target": target.get_position()},
+        "down": {"safe": False, "first_target": target.position},
         "forward": {"safe": True, "first_target": None}
     }
     mock_torpedo_system.get_friendly_fire_report.return_value = risky_report
@@ -111,10 +111,11 @@ def test_activate_nuke_with_friendly_fire_risk(nuke_activation_instance, mock_to
     mock_torpedo_system.get_friendly_fire_report.assert_called_once()
 
 
-def test_activate_nuke_invalid_serial(nuke_activation_instance, mock_torpedo_system):
+def test_activate_nuke_invalid_serial(nuke_activation_instance, mock_torpedo_system, mock_submarine_squadron):
     """
     Testar att aktivering misslyckas med ett ogiltigt serienummer.
     """
+    submarines, _, _ = mock_submarine_squadron
     # Mocka get_friendly_fire_report att returnera en säker rapport
     safe_report = {
         "up": {"safe": True, "first_target": None},
@@ -125,6 +126,7 @@ def test_activate_nuke_invalid_serial(nuke_activation_instance, mock_torpedo_sys
     
     # Använd ett ogiltigt serienummer
     mock_submarine = Mock(spec=Submarine, id="INVALID_DRONE")
+    mock_submarine.position = (100, 100) # Lägg till position för att undvika AttributeError
     
     result = nuke_activation_instance.activate_nuke(
         serial="INVALID_DRONE", 

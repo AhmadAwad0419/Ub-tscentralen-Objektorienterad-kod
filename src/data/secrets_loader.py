@@ -1,7 +1,7 @@
 import os
 from typing import Dict, Generator, Tuple
 from src.config.paths import secret_key_file_path, activation_codes_file_path
-from src.utils.logger import secrets_logger
+from src.utils.logger import secrets_logger, log_calls
 
 class SecretsLoader:
     """
@@ -33,6 +33,7 @@ class SecretsLoader:
                     else:
                         secrets_logger.secret_loader(f"Ogiltigt format på rad i filen: {file_path}", level="WARNING")
 
+    @log_calls
     def load_secrets(self) -> bool:
         """
         Läser in både SecretKEY.txt och ActivationCodes.txt.
@@ -61,6 +62,7 @@ class SecretsLoader:
             secrets_logger.secret_loader(f"Ett oväntat fel uppstod vid inläsning av hemligheter: {e}", level="EXCEPTION")
             return False
 
+    @log_calls
     def get_secret_key(self, serial_number: str) -> str | None:
         """
         Hämtar en hemlig nyckel baserat på ubåtens serienummer.
@@ -71,6 +73,7 @@ class SecretsLoader:
             
         return self.secret_keys.get(serial_number)
 
+    @log_calls
     def get_activation_code(self, serial_number: str) -> str | None:
         """
         Hämtar en aktiveringskod baserat på ubåtens serienummer.
