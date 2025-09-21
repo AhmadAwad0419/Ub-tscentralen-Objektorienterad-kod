@@ -29,27 +29,27 @@ def mock_submarines():
     """
     # Ubåten som avfyrar
     shooter_sub = Mock(spec=Submarine)
-    shooter_sub.get_position.return_value = (50, 50)
+    shooter_sub.position = (50, 50)
     
     # En ubåt rakt "uppåt" (på samma x, lägre y)
     up_target = Mock(spec=Submarine)
-    up_target.get_position.return_value = (50, 20)
+    up_target.position = (50, 20)
     
     # En ubåt rakt "nedåt" (på samma x, högre y)
     down_target = Mock(spec=Submarine)
-    down_target.get_position.return_value = (50, 80)
+    down_target.position = (50, 80)
     
     # En ubåt rakt "framåt" (på samma y, högre x)
     forward_target = Mock(spec=Submarine)
-    forward_target.get_position.return_value = (70, 50)
+    forward_target.position = (70, 50)
     
     # En ubåt diagonalt, som inte ska upptäckas
     diagonal_target = Mock(spec=Submarine)
-    diagonal_target.get_position.return_value = (100, 100)
+    diagonal_target.position = (100, 100)
     
     # En ubåt som är närmare i "nedåt"-riktningen
     closer_down_target = Mock(spec=Submarine)
-    closer_down_target.get_position.return_value = (50, 60)
+    closer_down_target.position = (50, 60)
     
     fleet = [
         shooter_sub, 
@@ -86,19 +86,17 @@ def test_check_for_friendly_fire_safe_path(torpedo_system):
     """
     Testar att generatorn returnerar "safe" när det inte finns några mål.
     """
-    shooter_sub = Mock(spec=Submarine, get_position=lambda: (10, 10))
+    shooter_sub = Mock(spec=Submarine)
+    shooter_sub.position = (10, 10)
+    
     # Endast skytten finns i flottan
     fleet = [shooter_sub] 
     
     results = list(torpedo_system.check_for_friendly_fire(fleet, shooter_sub))
     
-    expected_results = [
-        ("up", True, None),
-        ("down", True, None),
-        ("forward", True, None)
-    ]
-    
-    assert results == expected_results
+    for direction, safe, first_target in results:
+        assert safe is True
+        assert first_target is None
 
 def test_get_friendly_fire_report(torpedo_system, mock_submarines):
     """

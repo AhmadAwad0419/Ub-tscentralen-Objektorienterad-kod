@@ -41,12 +41,12 @@ def mock_submarine_squadron():
     """
     mock_shooter = Mock(spec=Submarine)
     mock_shooter.id = "DRONE_1"
-    mock_shooter.get_position.return_value = (10, 10)
+    mock_shooter.position = (10, 10)
 
     mock_target = Mock(spec=Submarine)
     mock_target.id = "DRONE_2"
     # Samma kolumn, simulerar friendly fire-risk
-    mock_target.get_position.return_value = (10, 20) 
+    mock_target.position = (10, 20) 
 
     return [mock_shooter, mock_target], mock_shooter, mock_target
 
@@ -96,7 +96,7 @@ def test_activate_nuke_with_friendly_fire_risk(nuke_activation_instance, mock_to
     # Mocka get_friendly_fire_report att returnera en rapport med risk
     risky_report = {
         "up": {"safe": True, "first_target": None},
-        "down": {"safe": False, "first_target": target.get_position()},
+        "down": {"safe": False, "first_target": target.position},
         "forward": {"safe": True, "first_target": None}
     }
     mock_torpedo_system.get_friendly_fire_report.return_value = risky_report
