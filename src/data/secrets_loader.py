@@ -1,7 +1,7 @@
 import os
 from typing import Dict, Generator, Tuple
 from src.config.paths import secret_key_file_path, activation_codes_file_path
-from src.utils.logger import secrets_logger
+from src.utils.logger import secrets_logger, log_calls
 
 class SecretsLoader:
     """
@@ -13,26 +13,29 @@ class SecretsLoader:
         self.secret_keys: Dict[str, str] = {}
         self.activation_codes: Dict[str, str] = {}
         self.is_loaded = False
-
+    
+    @log_calls(secrets_logger, "secret_loader", context_args=["file_path"])
     def load_file_row(self, file_path: str) -> Generator[Tuple[str, str], None, None]:
         """
         Generator för att läsa en fil rad för rad.
         """
         if not os.path.exists(file_path):
-            raise FileNotFoundError(f"Filen kunde inte hittas: {file_path}")
+            raise FileNotFoundError()
 
-        with open(file_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    parts = line.split(":")
-                    if len(parts) == 2:
-                        serial_number = parts[0].strip()
-                        value = parts[1].strip()
-                        yield serial_number, value
-                    else:
-                        secrets_logger.secret_loader(f"Ogiltigt format på rad i filen: {file_path}", level="WARNING")
-
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        parts = line.split(":")
+                        if len(parts) == 2:
+                            serial_number = parts[0].strip()
+                            value = parts[1].strip()
+                            yield serial_number, value
+        except ValueError:
+            raise
+    
+    @log_calls(secrets_logger, "secret_loader")
     def load_secrets(self) -> bool:
         """
         Läser in både SecretKEY.txt och ActivationCodes.txt.
@@ -54,13 +57,12 @@ class SecretsLoader:
             self.is_loaded = True
             return True
 
-        except FileNotFoundError as e:
-            secrets_logger.secret_loader(f"Fil hittades inte: {e}", level="ERROR")
+        except FileNotFoundError:
             return False
-        except Exception as e:
-            secrets_logger.secret_loader(f"Ett oväntat fel uppstod vid inläsning av hemligheter: {e}", level="EXCEPTION")
+        except Exception:
             return False
 
+    @log_calls(secrets_logger, "secret_loader")
     def get_secret_key(self, serial_number: str) -> str | None:
         """
         Hämtar en hemlig nyckel baserat på ubåtens serienummer.
@@ -71,6 +73,7 @@ class SecretsLoader:
             
         return self.secret_keys.get(serial_number)
 
+    @log_calls(secrets_logger, "secret_loader")
     def get_activation_code(self, serial_number: str) -> str | None:
         """
         Hämtar en aktiveringskod baserat på ubåtens serienummer.
