@@ -1,7 +1,7 @@
 from typing import Generator, Tuple
 from src.data.file_reader import FileReader
 from src.core.movement_manager import MovementManager
-from src.utils.logger import file_logger
+from src.utils.logger import sensor_logger, log_calls
 
 class SensorManager:
     """
@@ -30,8 +30,6 @@ class SensorManager:
     def log_analysis(self, analysis, drone_id: str):
         """Logs the analysis results for a given drone."""
         error_count, pattern_count = analysis
-
-        file_logger.sensor_error(f"Analysis for drone {drone_id}: Total Errors: {error_count}", level="ERROR")
         
     def process_all_sensor_data(self):
         """Processes all sensor data files."""

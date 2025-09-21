@@ -28,12 +28,12 @@ class NukeActivation:
         self.torpedo_system.log_torpedo_launch(submarine_to_check, friendly_fire_report)
         for direction, info in friendly_fire_report.items():
             if info.get("safe") is False:
-                nuke_logger.nuke_activation(f"Varning: Friendly fire-risk upptäcktes i {direction}-riktningen. Avfyrning avbruten.", level="WARNING")
+                
                 return False
         
-        nuke_logger.nuke_activation("Ingen friendly fire-risk upptäcktes. Avfyrning godkänd.", level="INFO")
         return True
 
+    @log_calls(nuke_logger, "movement_files", context_args=["submarines", "submarine_to_check"])
     def activate_nuke(self, serial: str, submarines: List[Submarine], submarine_to_check: Submarine) -> bool:
         """
         Försöker aktivera kärnvapnet för en given ubåt, med
@@ -48,7 +48,7 @@ class NukeActivation:
         activation_code: Optional[str] = self.secrets_loader.get_activation_code(serial)
         
         if not (secret_key and activation_code):
-            nuke_logger.nuke_activation(f"Kunde inte hitta hemligheter för ubåt {serial}.", level="ERROR")
+            
             return False
 
         today_date: str = datetime.now().strftime("%Y-%m-%d")
@@ -57,14 +57,6 @@ class NukeActivation:
         
         hash_object = hashlib.sha256(combined_string.encode('utf-8'))
         calculated_hash: str = hash_object.hexdigest()
-
-        nuke_logger.nuke_activation(
-            f"Nukeaktivering godkänd för ubåt {serial}\n"
-            f"Använder hemlig nyckel: {secret_key}\n"
-            f"Använder aktiveringskod: {activation_code}\n"
-            f"Kombinerad sträng: {combined_string}\n"
-            f"Beräknad hash: {calculated_hash}\n"
-            f"Verifiering lyckades: Nuke avfyras!\n",
-            level="CRITICAL"
-            )        
+        calculated_hash
+    
         return True
