@@ -1,52 +1,128 @@
-import time
-from typing import Dict, List, Generator, Tuple
+from src.utils.logger import movement_logger, log_calls, collision_logger
 from src.core.submarine import Submarine
-from src.data.file_reader import FileReader
 from src.core.collision_checker import CollisionChecker
-from src.utils.logger import movement_logger, log_calls
+from src.core.sensor_manager import SensorManager
+import time
 
 class MovementManager:
-    """
-    Synchronous orchestrator: steps all submarines in lockstep rounds.
-    """
-
-    def __init__(self, reader: FileReader, tick_delay: float = 0.0):
-        self.reader = reader
-        self.submarines: Dict[str, Submarine] = {}
-        self.collision_checker = CollisionChecker()
+    def __init__(self, reader, tick_delay=0.0):
+        self.file_reader = reader
+        self.submarines = {}
         self.tick_delay = tick_delay
+        self.collision_checker = CollisionChecker()
 
-    @property
-    def active_subs(self) -> List[Submarine]:
-        return [s for s in self.submarines.values() if s.is_active]
-
-    def load_submarines_from_generator(self, gen: Generator[Tuple[str, Generator], None, None]):
-        """
-        Laddar ubåtar direkt från en generator.
-        """
+    def load_submarines_from_generator(self, gen):
         for sub_id, movement_gen in gen:
             sub = Submarine(sub_id)
             sub.attach_generator(movement_gen)
             self.submarines[sub.id] = sub
+            sub.attach_generator(self.file_reader.load_movements(sub.id))
 
-    def run(self):
-        round_no = 0
-        while any(s.is_active for s in self.submarines.values()):
-            round_no += 1
-            active_count = len(self.active_subs)
-            movement_logger.movement(f"Round {round_no} ({active_count} active submarines)", level="INFO")
+    @property
+    def active_subs(self):
+        return [s for s in self.submarines.values() if s.is_active]
 
-            # Each sub takes one step
-            for sub in self.active_subs:
+    def check_collisions(self):
+        """Kontrollerar kollisioner mellan aktiva ubåtar."""
+        return self.collision_checker.check_for_collisions(self.active_subs)
+
+    @log_calls(movement_logger, "movement")
+    def step_round(self, round_counter: int, sensor_manager) -> None:
+        """Kör en enda runda: move, kollision, sensorer"""
+        movement_logger.info(
+            f"Round {round_counter} ({len(self.active_subs)} active submarines)"
+        )
+
+        positions: dict[tuple[int, int], object] = {}
+
+        for sub in list(self.active_subs):
+            sub.step()
+            pos = sub.position
+            if pos in positions and positions[pos].is_active:
+                other = positions[pos]
+                sub.is_active = False
+                other.is_active = False
+                movement_logger.critical(
+                    f"Collision at {pos}: {sub.id} and {other.id} destroyed"
+                )
+                collision_logger.critical(
+                        f"Collision at {pos}: {sub.id} and {other.id} destroyed"
+                )
+            else:
+                positions[pos] = sub
+
+        # sensorerna körs bara på aktiva subs
+        sensor_manager.process_all_sensor_data(only_active=True)
+
+        if self.tick_delay > 0:
+            time.sleep(self.tick_delay)
+
+    def run(self, sensor_manager):
+        """Kör hela simuleringen tills alla subs är inaktiva"""
+        round_counter = 1
+        while any(sub.is_active for sub in self.submarines.values()):
+            self.step_round(round_counter, sensor_manager)
+            round_counter += 1
+
+        movement_logger.info("Simulation finished")
+
+
+    """def run(self):
+        round_counter = 1
+
+        while any(sub.is_active for sub in self.submarines.values()):
+            movement_logger.info(
+                f"Round {round_counter} ({len(self.active_subs)} active submarines)"
+            )
+
+            positions: dict[tuple[int, int], object] = {}
+
+            for sub in list(self.active_subs):
                 sub.step()
+                pos = sub.position
+                if pos in positions and positions[pos].is_active:
+                    other = positions[pos]
+                    sub.is_active = False
+                    other.is_active = False
+                    movement_logger.critical(
+                        f"Collision at {pos}: {sub.id} and {other.id} destroyed"
+                    )
+                else:
+                    positions[pos] = sub
 
-            # Collision check
-            collisions = self.collision_checker.check_for_collisions(self.active_subs)
-            for s1, s2, _ in collisions:
-                s1.is_active = False
-                s2.is_active = False
-
-            if self.tick_delay:
+            if self.tick_delay > 0:
                 time.sleep(self.tick_delay)
 
-        print("SLUT")
+            round_counter += 1
+
+        # När alla rundor är klara → kör sensorerna en gång
+        if self.file_reader:
+            sensor_manager = SensorManager(self.file_reader, self)
+            sensor_manager.process_all_sensor_data()
+
+        movement_logger.info("Simulation finished")
+
+    def run_round(self, round_counter: int):
+        #Kör en enskild runda (för GUI/live uppdatering).
+
+        movement_logger.info(
+            f"Round {round_counter} ({len(self.active_subs)} active submarines)"
+        )
+
+        positions: dict[tuple[int, int], object] = {}
+
+        for sub in list(self.active_subs):
+            sub.step()
+            pos = sub.position
+            if pos in positions and positions[pos].is_active:
+                other = positions[pos]
+                sub.is_active = False
+                other.is_active = False
+                movement_logger.critical(
+                    f"Collision at {pos}: {sub.id} and {other.id} destroyed"
+                )
+            else:
+                positions[pos] = sub
+
+        if self.tick_delay > 0:
+            time.sleep(self.tick_delay)"""
