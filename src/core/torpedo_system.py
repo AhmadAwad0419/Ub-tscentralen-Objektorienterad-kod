@@ -15,7 +15,7 @@ class TorpedoSystem:
         A generator that returns 
         (direction, safe, first_target) for each direction, where first_target is (x, y) or None.
         """
-        shooter_x, shooter_y = submarine_to_check.get_position()
+        shooter_x, shooter_y = submarine_to_check.position
 
         up_candidates = []
         down_candidates = []
@@ -24,7 +24,7 @@ class TorpedoSystem:
         for sub in submarines:
             if sub is submarine_to_check:
                 continue
-            target_x, target_y = sub.get_position()
+            target_x, target_y = sub.position
 
             if target_x == shooter_x:
                 if target_y < shooter_y:
@@ -46,7 +46,7 @@ class TorpedoSystem:
                     best = cand
                     best_distance = cand[1]
             chosen_sub = best[0]
-            return chosen_sub.get_position()
+            return chosen_sub.position
 
         up_first = pick_closest(up_candidates)
         down_first = pick_closest(down_candidates)
@@ -74,7 +74,7 @@ class TorpedoSystem:
     ) -> None:
         """Log a torpedo launch attempt and friendly-fire risks."""
         sid = getattr(submarine, "id", "<unknown>")
-        print(f"Torpedo launch attempt from submarine {sid} at {submarine.get_position()}:")
+        print(f"Torpedo launch attempt from submarine {sid} at {submarine.position}:")
         for direction in ("up", "down", "forward"):
             info = check_result.get(direction, {})
             if info.get("safe", True):

@@ -1,4 +1,4 @@
-from src.utils.logger import movement_logger, log_calls, collision_logger
+from src.utils.logger import movement_logger, log_calls, collision_logger, sensor_logger
 from src.core.submarine import Submarine
 from src.core.collision_checker import CollisionChecker
 from src.core.sensor_manager import SensorManager
@@ -36,6 +36,8 @@ class MovementManager:
         positions: dict[tuple[int, int], object] = {}
 
         for sub in list(self.active_subs):
+            if sub._gen is None:
+                continue
             sub.step()
             pos = sub.position
             if pos in positions and positions[pos].is_active:
@@ -53,14 +55,25 @@ class MovementManager:
 
         # sensorerna körs bara på aktiva subs
         sensor_manager.process_all_sensor_data(only_active=True)
-
+        sensor_logger.info(
+        f"[Sensor] Round {round_counter} finished → {len(self.active_subs)} subs left"
+    )
         if self.tick_delay > 0:
             time.sleep(self.tick_delay)
 
     def run(self, sensor_manager):
-        """Kör hela simuleringen tills alla subs är inaktiva"""
+        """Kör hela simuleringen tills inga subs kan röra sig längre."""
         round_counter = 1
-        while any(sub.is_active for sub in self.submarines.values()):
+
+        while True:
+            # Kolla om det finns minst en aktiv ubåt med en generator kvar
+            can_move = any(
+                sub.is_active and sub._gen is not None
+                for sub in self.submarines.values()
+            )
+            if not can_move:
+                break
+
             self.step_round(round_counter, sensor_manager)
             round_counter += 1
 

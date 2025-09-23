@@ -280,11 +280,15 @@ class SimulationWorker(QObject):
 
     def run(self):
         round_counter = 1
-        while any(sub.is_active for sub in self.manager.submarines.values()):
-            # kör en runda med nya step_round
-            self.manager.step_round(round_counter, self.sensor_manager)
+        while True:
+            can_move = any(
+                sub.is_active and sub._gen is not None
+                for sub in self.manager.submarines.values()
+            )
+            if not can_move:
+                break
 
-            # skicka status till GUI
+            self.manager.step_round(round_counter, self.sensor_manager)
             self.round_update.emit(round_counter, len(self.manager.active_subs))
             round_counter += 1
 

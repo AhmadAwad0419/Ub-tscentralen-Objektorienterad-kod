@@ -56,7 +56,7 @@ class Submarine:
             self.apply_movement(command, value)
         except StopIteration:
             print(f"Sub {self.id} ran out of moves!")
-            self._active = False
+            self._gen = None
 
     def __repr__(self):
         return f"Submarine({self.id}, pos={self.position}, active={self.is_active})"
