@@ -1,4 +1,3 @@
-# secrets_loader.py (ersätt eller komplettera befintlig klass)
 import os
 import hmac
 import hashlib

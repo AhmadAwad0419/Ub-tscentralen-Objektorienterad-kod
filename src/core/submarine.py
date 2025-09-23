@@ -1,4 +1,3 @@
-# src/core/submarine.py
 from typing import Optional, Generator, Tuple
 from src.utils.logger import movement_logger
 

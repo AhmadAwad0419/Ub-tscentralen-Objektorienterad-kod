@@ -1,4 +1,3 @@
-# src/main.py
 import os, sys
 import concurrent.futures
 import argparse

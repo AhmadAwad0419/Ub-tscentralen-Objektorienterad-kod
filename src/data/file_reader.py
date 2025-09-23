@@ -1,4 +1,3 @@
-# src/data/file_reader.py
 import os
 from pathlib import Path
 from typing import Generator, Tuple, Union
@@ -73,34 +72,7 @@ class FileReader:
         except Exception as e:
             file_logger.error(f"Failed to load movements for {drone_id}: {e}")
             raise
-    """def load_movements(self, drone_id: str):
-        #Loads movement commands for a specific drone.
-        file_path = paths.movement_file_path(drone_id)
-        if not os.path.exists(file_path):
-            file_logger.error(f"Movement file not found: {file_path}")
-            raise FileNotFoundError()
-        
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                line_num = 0
-                for line in f:
-                    parts = line.strip().split()
-                    if len(parts) == 2:
-                        direction = parts[0]
-                        distance = int(parts[1])
-                        line_num += 1
-                        file_logger.info(
-                            f"[{drone_id}] Loaded movement line {line_num}: {direction} {distance}"
-                        )
-                        yield (direction, distance)
-
-                if line_num == 0:
-                    file_logger.warning(f"[{drone_id}] Movement file {file_path} was empty!")
-
-        except ValueError as e:
-            file_logger.error(f"Invalid data in movement file {file_path}: {e}")
-            raise"""
-
+    
     @log_calls(sensor_file_logger, "sensor_files")
     def load_all_sensor_files(self) -> Generator[Tuple[str, Generator[str, None, None]], None, None]:
         """
