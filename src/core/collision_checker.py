@@ -1,6 +1,8 @@
 # src/core/collision_checker.py
 from typing import List, Tuple
 from src.core.submarine import Submarine
+from src.utils.logger import collision_logger, log_calls
+
 
 class CollisionChecker:
     """Simple synchronous collision checker."""
@@ -8,29 +10,37 @@ class CollisionChecker:
     def __init__(self):
         self.collision_log: list[tuple[str, str, tuple[int,int]]] = []
 
-    def check_for_collisions(
-        self, submarines: List[Submarine]
-    ) -> List[Tuple[Submarine, Submarine, tuple[int,int]]]:
-        active_subs = [s for s in submarines if s.is_active]
-        position_map: dict[tuple[int,int], Submarine] = {}
-        results: list[tuple[Submarine, Submarine, tuple[int,int]]] = []
+    @log_calls(collision_logger, "collision", context_args=["submarines"])
+    def check_for_collisions(self, submarines: List[Submarine]):
+        # Gruppera subs per position
+        position_map: dict[tuple[int, int], list[Submarine]] = {}
+        for sub in submarines:
+            if not sub.is_active:
+                continue
+            position_map.setdefault(sub.position, []).append(sub)
 
-        for sub in active_subs:
-            pos = sub.position
-            if pos in position_map:
-                other = position_map[pos]
-                if not other.is_active:
-                    position_map[pos] = sub
-                    continue
+        collisions: List[Tuple[Submarine, Submarine, tuple[int, int]]] = []
 
-                id1, id2 = sorted([other.id, sub.id])
-                key = (id1, id2, pos)
-                if key not in self.collision_log:
-                    self.collision_log.append(key)
-                    results.append((other, sub, pos))
-                    print(f"Collision detected between {id1} and {id2} at {pos}")
-                    position_map.pop(pos, None)
-            else:
-                position_map[pos] = sub
+        for pos, subs_at_pos in position_map.items():
+            if len(subs_at_pos) >= 2:
+                # Alla subs på samma plats dör
+                ids = [s.id for s in subs_at_pos]
+                for s in subs_at_pos:
+                    s.is_active = False
 
-        return results
+                # Lägg in alla krockpar i loggen
+                for i in range(len(subs_at_pos)):
+                    for j in range(i + 1, len(subs_at_pos)):
+                        collisions.append((subs_at_pos[i], subs_at_pos[j], pos))
+                        self.collision_log.append((subs_at_pos[i].id, subs_at_pos[j].id, pos))
+
+                if len(subs_at_pos) == 2:
+                    collision_logger.critical(
+                        f"Collision at {pos} → {ids[0]} and {ids[1]} destroyed"
+                    )
+                else:
+                    collision_logger.critical(
+                        f"Mass collision at {pos} → subs {', '.join(ids)} destroyed"
+                    )
+
+        return collisions

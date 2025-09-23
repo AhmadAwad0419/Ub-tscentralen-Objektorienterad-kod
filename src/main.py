@@ -35,7 +35,7 @@ def run_sync(tick_delay: float):
 
     reader = FileReader()
     manager = MovementManager(reader, tick_delay=tick_delay)
-    manager.load_submarines(subs)
+    manager.load_submarines_from_generator(subs)
     manager.run()
 
 

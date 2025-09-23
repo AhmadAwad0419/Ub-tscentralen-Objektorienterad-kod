@@ -1,5 +1,6 @@
 # src/core/submarine.py
 from typing import Optional, Generator, Tuple
+from src.utils.logger import movement_logger
 
 class Submarine:
     """
@@ -26,7 +27,7 @@ class Submarine:
     def is_active(self, val: bool):
         self._active = bool(val)
 
-    def attach_generator(self, gen: Generator[tuple[str,int], None, None]):
+    def attach_generator(self, gen):
         self._gen = gen
 
     def apply_movement(self, direction: str, distance: int):
@@ -43,16 +44,18 @@ class Submarine:
         }
         ops[direction]()
         print(f"Sub {self.id} moved {direction} {distance} → pos {self.position}")
-        
+        movement_logger.info(f"Sub {self.id} moved {direction} {distance} → pos {self.position}")
+
+
     def step(self):
-        """Perform one movement from the generator if available."""
         if not self._gen or not self._active:
             return
-
         try:
             command, value = next(self._gen)
+            #print(f"Stepping with {self.id} to {command} and {value}")
             self.apply_movement(command, value)
         except StopIteration:
+            print(f"Sub {self.id} ran out of moves!")
             self._active = False
 
     def __repr__(self):
