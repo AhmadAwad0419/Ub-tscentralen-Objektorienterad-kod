@@ -9,8 +9,7 @@ PATTERN_LEN = 208
 class SensorManager:
     """Stegvis analys av sensordata: en rad per runda."""
 
-    def __init__(self, reader=None, movement_manager=None):
-        self.reader = reader
+    def __init__(self, movement_manager=None):
         self.movement_manager = movement_manager
         self.generators: dict[str, iter] = {}
         self.pattern_counts: dict[str, Counter] = {}    # sub_id -> Counter över mönster-hash

@@ -233,25 +233,37 @@ class MainMenu(QMainWindow):
 
     def show_sensor_errors(self):
         results = []
+
+        # Om generatorer inte är kopplade ännu
+        if not self.sensor_manager.generators:
+            QMessageBox.information(self, "Sensor Errors",
+                "Sensors are not attached yet. Start the simulation first.")
+            return
+
         for sub in self.manager.submarines.values():
-            if sub.is_active and sub.id in self.sensor_manager.pattern_counts:
-                counts = self.sensor_manager.pattern_counts[sub.id]
-                if counts:
-                    total_patterns = sum(counts.values())
-                    unique = len(counts)
-                    top = counts.most_common(1)[0]
-                    example_pattern = self.sensor_manager.pattern_examples[sub.id][top[0]]
-                    results.append(
-                        f"{sub.id}: {total_patterns} lines, {unique} unique patterns\n"
-                        f"   Most common pattern ({top[1]}x): {example_pattern[:50]}..."
-                    )
-                else:
-                    results.append(f"{sub.id}: no sensor data read")
-        
+            if not sub.is_active:
+                continue
+
+            counts = self.sensor_manager.pattern_counts.get(sub.id)
+            if not counts:
+                results.append(f"{sub.id}: no sensor data read")
+                continue
+
+            total_patterns = sum(counts.values())
+            unique = len(counts)
+            top_hash, top_count = counts.most_common(1)[0]
+            example_pattern = self.sensor_manager.pattern_examples[sub.id][top_hash]
+            results.append(
+                f"{sub.id}: {total_patterns} lines, {unique} unique patterns\n"
+                f"   Most common pattern ({top_count}x): {example_pattern[:50]}..."
+            )
+
         if results:
             QMessageBox.information(self, "Sensor Errors", "\n".join(results))
         else:
-            QMessageBox.information(self, "Sensor Errors", "No surviving submarines with sensor data.")
+            QMessageBox.information(self, "Sensor Errors",
+                "No active submarines with sensor data.")
+
 
 
     def distance_analysis(self):
@@ -310,7 +322,9 @@ def launch_gui():
     torpedos = TorpedoSystem()
     secrets = SecretsLoader()
     nuke = NukeActivation(secrets_loader=secrets, torpedo_system=torpedos)
-    sensor_manager = SensorManager(reader, manager)
+    
+    sensor_manager = SensorManager(manager)                      
+    sensor_manager.attach_generators(manager.submarines.values())
 
     def start_simulation():
         app.thread = QThread()
