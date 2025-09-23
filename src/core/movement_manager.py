@@ -1,6 +1,5 @@
 from src.utils.logger import movement_logger, log_calls, collision_logger, sensor_logger
 from src.core.submarine import Submarine
-from src.core.collision_checker import CollisionChecker
 from src.core.sensor_manager import SensorManager
 import time
 
@@ -9,7 +8,6 @@ class MovementManager:
         self.file_reader = reader
         self.submarines = {}
         self.tick_delay = tick_delay
-        self.collision_checker = CollisionChecker()
 
     def load_submarines_from_generator(self, gen):
         for sub_id, movement_gen in gen:
@@ -22,9 +20,9 @@ class MovementManager:
     def active_subs(self):
         return [s for s in self.submarines.values() if s.is_active]
 
-    def check_collisions(self):
-        """Kontrollerar kollisioner mellan aktiva ubåtar."""
-        return self.collision_checker.check_for_collisions(self.active_subs)
+    #def check_collisions(self):
+       # """Kontrollerar kollisioner mellan aktiva ubåtar."""
+       # return self.collision_checker.check_for_collisions(self.active_subs)
 
     @log_calls(movement_logger, "movement")
     def step_round(self, round_counter: int, sensor_manager) -> None:

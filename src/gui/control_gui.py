@@ -159,7 +159,6 @@ class MainMenu(QMainWindow):
                     f"No submarine found with ID {sub_id}"
                 )
         else:
-            # 🔽 här kör vi din befintliga kod som listar alla subs
             results = []
             for sub in self.manager.submarines.values():
                 results.append(
