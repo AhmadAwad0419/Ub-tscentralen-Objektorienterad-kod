@@ -19,6 +19,9 @@ Secrets/
 venv/
 env/
 
+# Loggningsfiler
+*.log
+
 # Inlämningsbeskrivning
 Proj 1.pdf
 src/logs/system_2025-09-18.log
