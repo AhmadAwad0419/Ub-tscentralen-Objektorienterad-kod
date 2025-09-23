@@ -54,7 +54,7 @@ class MovementManager:
                 positions[pos] = sub
 
         # sensorerna körs bara på aktiva subs
-        sensor_manager.process_all_sensor_data(only_active=True)
+        sensor_manager.process_next_round(round_counter, only_active=True)
         sensor_logger.info(
         f"[Sensor] Round {round_counter} finished → {len(self.active_subs)} subs left"
     )
@@ -78,64 +78,3 @@ class MovementManager:
             round_counter += 1
 
         movement_logger.info("Simulation finished")
-
-
-    """def run(self):
-        round_counter = 1
-
-        while any(sub.is_active for sub in self.submarines.values()):
-            movement_logger.info(
-                f"Round {round_counter} ({len(self.active_subs)} active submarines)"
-            )
-
-            positions: dict[tuple[int, int], object] = {}
-
-            for sub in list(self.active_subs):
-                sub.step()
-                pos = sub.position
-                if pos in positions and positions[pos].is_active:
-                    other = positions[pos]
-                    sub.is_active = False
-                    other.is_active = False
-                    movement_logger.critical(
-                        f"Collision at {pos}: {sub.id} and {other.id} destroyed"
-                    )
-                else:
-                    positions[pos] = sub
-
-            if self.tick_delay > 0:
-                time.sleep(self.tick_delay)
-
-            round_counter += 1
-
-        # När alla rundor är klara → kör sensorerna en gång
-        if self.file_reader:
-            sensor_manager = SensorManager(self.file_reader, self)
-            sensor_manager.process_all_sensor_data()
-
-        movement_logger.info("Simulation finished")
-
-    def run_round(self, round_counter: int):
-        #Kör en enskild runda (för GUI/live uppdatering).
-
-        movement_logger.info(
-            f"Round {round_counter} ({len(self.active_subs)} active submarines)"
-        )
-
-        positions: dict[tuple[int, int], object] = {}
-
-        for sub in list(self.active_subs):
-            sub.step()
-            pos = sub.position
-            if pos in positions and positions[pos].is_active:
-                other = positions[pos]
-                sub.is_active = False
-                other.is_active = False
-                movement_logger.critical(
-                    f"Collision at {pos}: {sub.id} and {other.id} destroyed"
-                )
-            else:
-                positions[pos] = sub
-
-        if self.tick_delay > 0:
-            time.sleep(self.tick_delay)"""

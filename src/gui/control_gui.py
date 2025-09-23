@@ -234,19 +234,25 @@ class MainMenu(QMainWindow):
     def show_sensor_errors(self):
         results = []
         for sub in self.manager.submarines.values():
-            if sub.is_active:
-                result = self.sensor_manager.process_sensor_by_serial(sub.id)
-                if result["status"] == "ok":
+            if sub.is_active and sub.id in self.sensor_manager.pattern_counts:
+                counts = self.sensor_manager.pattern_counts[sub.id]
+                if counts:
+                    total_patterns = sum(counts.values())
+                    unique = len(counts)
+                    top = counts.most_common(1)[0]
+                    example_pattern = self.sensor_manager.pattern_examples[sub.id][top[0]]
                     results.append(
-                        f"{sub.id}: max errors={result['max_errors']} (lines={result['lines']})"
+                        f"{sub.id}: {total_patterns} lines, {unique} unique patterns\n"
+                        f"   Most common pattern ({top[1]}x): {example_pattern[:50]}..."
                     )
                 else:
-                    results.append(f"{sub.id}: MISSING ({result['msg']})")
-
+                    results.append(f"{sub.id}: no sensor data read")
+        
         if results:
             QMessageBox.information(self, "Sensor Errors", "\n".join(results))
         else:
-            QMessageBox.information(self, "Sensor Errors", "No active submarines.")
+            QMessageBox.information(self, "Sensor Errors", "No surviving submarines with sensor data.")
+
 
     def distance_analysis(self):
         subs = [s for s in self.manager.submarines.values() if s.is_active]
