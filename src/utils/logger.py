@@ -32,6 +32,7 @@ sensor_logger       = create_logger("sensor_logger",       "sensor.log")
 sensor_file_logger  = create_logger("sensor_file_logger",  "sensor_files.log")
 nuke_logger         = create_logger("nuke_logger",         "nukes.log")
 secrets_logger    = create_logger("secrets_logger",    "secrets.log")
+torpedo_logger    = create_logger("torpedos_logger",    "torpedos.log")
 
 
 # === Decorator för att logga funktionsanrop ===

@@ -1,5 +1,6 @@
 from typing import List, Dict, Tuple, Optional, Generator
 from src.core.submarine import Submarine
+from src.utils.logger import torpedo_logger
 
 class TorpedoSystem:
     """It handles torpedo launches and checks for friendly fire,
@@ -74,11 +75,12 @@ class TorpedoSystem:
     ) -> None:
         """Log a torpedo launch attempt and friendly-fire risks."""
         sid = getattr(submarine, "id", "<unknown>")
-        print(f"Torpedo launch attempt from submarine {sid} at {submarine.position}:")
+        torpedo_logger.info(f"Torpedo launch attempt from submarine {sid} at {submarine.position}")
+
         for direction in ("up", "down", "forward"):
             info = check_result.get(direction, {})
             if info.get("safe", True):
-                print(f"{direction}: SAFE")
+                torpedo_logger.info(f"{sid}: {direction} → SAFE")
             else:
                 target = info.get("first_target")
-                print(f"{direction}: RISK OF FRIENDLY FIRE -> first target at {target}")
+                torpedo_logger.warning(f"{sid}: {direction} → RISK OF FRIENDLY FIRE, first target at {target}")

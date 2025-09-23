@@ -3,7 +3,8 @@ import math
 import concurrent.futures
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QVBoxLayout,
-    QListWidget, QMessageBox, QDialog, QLabel, QMainWindow
+    QListWidget, QMessageBox, QDialog, QLabel, QMainWindow,
+    QLineEdit, QPushButton, QHBoxLayout
 )
 from PyQt5.QtCore import QThread, pyqtSignal, QObject, QTimer
 
@@ -79,9 +80,19 @@ class MainMenu(QMainWindow):
         layout.addWidget(self.round_label)
         layout.addWidget(self.subs_label)
 
-        search_btn = QPushButton("Search Submarine")
-        search_btn.clicked.connect(self.search_submarine)
-        layout.addWidget(search_btn)
+        # --- Search Submarine ---
+        search_layout = QHBoxLayout()
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Enter Submarine ID...")
+
+        search_button = QPushButton("Search Submarine")
+        search_button.clicked.connect(self.search_submarine)   # använder din befintliga metod
+
+        search_layout.addWidget(self.search_input)
+        search_layout.addWidget(search_button)
+
+        layout.addLayout(search_layout)
 
         show_stats_btn = QPushButton("Show All Statistics")
         show_stats_btn.clicked.connect(self.show_all_stats)
@@ -128,26 +139,36 @@ class MainMenu(QMainWindow):
             if not active_only or sub.is_active:
                 list_widget.addItem(f"{sub.id} → pos {sub.position}, active={sub.is_active}")
 
-   # === Funktioner ===
     def search_submarine(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Search Submarine")
-        layout = QVBoxLayout(dialog)
+        sub_id = self.search_input.text().strip()
 
-        list_widget = QListWidget()
-        self.populate_sub_list(list_widget)  # alla subs
-        layout.addWidget(list_widget)
+        if sub_id:  # om användaren skrev in ett ID
+            sub = self.manager.submarines.get(sub_id)
+            if sub:
+                QMessageBox.information(
+                    self,
+                    "Search Result",
+                    f"Submarine {sub.id}\n"
+                    f"Position: {sub.position}\n"
+                    f"Active: {'Yes' if sub.is_active else 'No'}"
+                )
+            else:
+                QMessageBox.information(
+                    self,
+                    "Search Result",
+                    f"No submarine found with ID {sub_id}"
+                )
+        else:
+            results = []
+            for sub in self.manager.submarines.values():
+                results.append(
+                    f"{sub.id} - Position: {sub.position} - Active: {'Yes' if sub.is_active else 'No'}"
+                )
+            if results:
+                QMessageBox.information(self, "All Submarines", "\n".join(results))
+            else:
+                QMessageBox.information(self, "All Submarines", "No submarines available")
 
-        active_btn = QPushButton("Show Active Only")
-        active_btn.clicked.connect(lambda: self.populate_sub_list(list_widget, active_only=True))
-        layout.addWidget(active_btn)
-
-        select_btn = QPushButton("Close")
-        select_btn.clicked.connect(dialog.accept)
-        layout.addWidget(select_btn)
-
-        dialog.setLayout(layout)
-        dialog.exec_()
 
     def show_all_stats(self):
         dialog = QDialog(self)
@@ -233,20 +254,38 @@ class MainMenu(QMainWindow):
 
     def show_sensor_errors(self):
         results = []
+
+        # Om generatorer inte är kopplade ännu
+        if not self.sensor_manager.generators:
+            QMessageBox.information(self, "Sensor Errors",
+                "Sensors are not attached yet. Start the simulation first.")
+            return
+
         for sub in self.manager.submarines.values():
-            if sub.is_active:
-                result = self.sensor_manager.process_sensor_by_serial(sub.id)
-                if result["status"] == "ok":
-                    results.append(
-                        f"{sub.id}: max errors={result['max_errors']} (lines={result['lines']})"
-                    )
-                else:
-                    results.append(f"{sub.id}: MISSING ({result['msg']})")
+            if not sub.is_active:
+                continue
+
+            counts = self.sensor_manager.pattern_counts.get(sub.id)
+            if not counts:
+                results.append(f"{sub.id}: no sensor data read")
+                continue
+
+            total_patterns = sum(counts.values())
+            unique = len(counts)
+            top_hash, top_count = counts.most_common(1)[0]
+            example_pattern = self.sensor_manager.pattern_examples[sub.id][top_hash]
+            results.append(
+                f"{sub.id}: {total_patterns} lines, {unique} unique patterns\n"
+                f"   Most common pattern ({top_count}x): {example_pattern[:50]}..."
+            )
 
         if results:
             QMessageBox.information(self, "Sensor Errors", "\n".join(results))
         else:
-            QMessageBox.information(self, "Sensor Errors", "No active submarines.")
+            QMessageBox.information(self, "Sensor Errors",
+                "No active submarines with sensor data.")
+
+
 
     def distance_analysis(self):
         subs = [s for s in self.manager.submarines.values() if s.is_active]
@@ -280,11 +319,15 @@ class SimulationWorker(QObject):
 
     def run(self):
         round_counter = 1
-        while any(sub.is_active for sub in self.manager.submarines.values()):
-            # kör en runda med nya step_round
-            self.manager.step_round(round_counter, self.sensor_manager)
+        while True:
+            can_move = any(
+                sub.is_active and sub._gen is not None
+                for sub in self.manager.submarines.values()
+            )
+            if not can_move:
+                break
 
-            # skicka status till GUI
+            self.manager.step_round(round_counter, self.sensor_manager)
             self.round_update.emit(round_counter, len(self.manager.active_subs))
             round_counter += 1
 
@@ -300,7 +343,9 @@ def launch_gui():
     torpedos = TorpedoSystem()
     secrets = SecretsLoader()
     nuke = NukeActivation(secrets_loader=secrets, torpedo_system=torpedos)
-    sensor_manager = SensorManager(reader, manager)
+    
+    sensor_manager = SensorManager(manager)                      
+    sensor_manager.attach_generators(manager.submarines.values())
 
     def start_simulation():
         app.thread = QThread()

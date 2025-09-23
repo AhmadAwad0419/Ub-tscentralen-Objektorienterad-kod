@@ -46,17 +46,15 @@ class Submarine:
         print(f"Sub {self.id} moved {direction} {distance} → pos {self.position}")
         movement_logger.info(f"Sub {self.id} moved {direction} {distance} → pos {self.position}")
 
-
     def step(self):
         if not self._gen or not self._active:
             return
         try:
             command, value = next(self._gen)
-            #print(f"Stepping with {self.id} to {command} and {value}")
             self.apply_movement(command, value)
         except StopIteration:
             print(f"Sub {self.id} ran out of moves!")
-            self._active = False
+            self._gen = None
 
     def __repr__(self):
         return f"Submarine({self.id}, pos={self.position}, active={self.is_active})"
