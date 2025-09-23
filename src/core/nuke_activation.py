@@ -35,3 +35,27 @@ class NukeActivation:
         # Om vi kommer hit: aktivera nukes (logga och returnera True)
         nuke_logger.critical(f"Nuke ACTIVATED for submarine {submarine.id} at {submarine.position}")
         return True
+
+    def allowed_to_activate(self, submarines: list, submarine) -> bool:
+        """
+        Kontrollera om en nuke kan aktiveras för given ubåt.
+        Blockerar om det finns andra aktiva ubåtar för nära (friendly fire).
+        """
+        SAFE_DISTANCE = 5  # exempel: Manhattan-avstånd < 5 blockeras
+
+        for other in submarines:
+            if other.id == submarine.id or not other.is_active:
+                continue
+
+            # Manhattan-avstånd mellan ubåtarna
+            dist = abs(other.position[0] - submarine.position[0]) + abs(other.position[1] - submarine.position[1])
+
+            if dist < SAFE_DISTANCE:
+                nuke_logger.warning(
+                    f"NUKE activation blocked for {submarine.id}: "
+                    f"friendly sub {other.id} too close at distance {dist}"
+                )
+                return False
+
+        nuke_logger.info(f"NUKE activation allowed for {submarine.id} at {submarine.position}")
+        return True
